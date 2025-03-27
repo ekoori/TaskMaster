@@ -107,7 +107,16 @@ export class TaskwarriorService {
   // Execute any Taskwarrior command
   async executeCommand(command: string): Promise<string> {
     try {
-      const { stdout, stderr } = await execAsync(command);
+      // If the command doesn't start with 'task' or the baseCommand, add it
+      let fullCommand = command;
+      
+      // Check if this is a raw Taskwarrior command without the task prefix
+      if (!command.startsWith('task') && !command.startsWith(this.baseCommand)) {
+        fullCommand = `${this.baseCommand} ${command}`;
+      }
+      
+      console.log(`Executing full command: ${fullCommand}`);
+      const { stdout, stderr } = await execAsync(fullCommand);
       
       if (stderr) {
         console.error(`Taskwarrior stderr: ${stderr}`);
