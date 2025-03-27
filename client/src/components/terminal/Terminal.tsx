@@ -191,16 +191,11 @@ export default function Terminal() {
           
           // Send command to server
           if (ws && ws.readyState === 1) { // WebSocket.OPEN is 1
-            // Disable the terminal input temporarily to prevent typing during command execution
-            term.setOption('disableStdin', true);
-            
             // Send command to server, server will echo it back in the response
             ws.send(JSON.stringify({ type: "command", command }));
             
-            // Re-enable after a short delay to allow for response
-            setTimeout(() => {
-              term.setOption('disableStdin', false);
-            }, 100);
+            // XTerm.js doesn't have a setOption in this version,
+            // we could implement a lock through state if this becomes an issue
           } else {
             term.writeln("\x1B[1;31mWebSocket not connected. Try refreshing the page.\x1B[0m");
             term.write(prompt);
@@ -223,11 +218,19 @@ export default function Terminal() {
       
       // Handle normal printable characters
       if (printable) {
-        // Special handling for space character to prevent issues
-        if (key === ' ') {
-          term.write('\u00A0'); // Use non-breaking space for display
-          setInputBuffer(inputBuffer + ' '); // But store normal space
+        // Special handling for space - the most reliable approach
+        if (key === ' ' || domEvent.key === ' ' || domEvent.key === 'Space') {
+          // Update buffer first
+          const newBuffer = inputBuffer + ' ';
+          setInputBuffer(newBuffer);
+          
+          // Use a consistent rendering approach for spaces
+          term.write(' ');
+          
+          // Log for debugging
+          console.log("Space character entered, buffer updated to:", newBuffer);
         } else {
+          // For non-space characters, use the standard approach
           term.write(key);
           setInputBuffer(inputBuffer + key);
         }

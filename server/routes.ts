@@ -104,12 +104,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (data.type === "command") {
           console.log("Sending command to tasksh:", data.command);
           
-          // Echo the command first to ensure it appears in terminal
-          ws.send(JSON.stringify({ 
-            type: "output", 
-            output: data.command
-          }));
-          
           // Send command to tasksh
           tasksh.stdin.write(data.command + '\n');
           
