@@ -102,11 +102,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const data = JSON.parse(message.toString());
         
         if (data.type === "command") {
-          console.log("Sending command to tasksh:", data.command);
+          const command = data.command;
+          console.log("Sending command to tasksh:", JSON.stringify(command));
           
-          // Send command to tasksh
-          tasksh.stdin.write(data.command + '\n');
-          
+          // Special handling for commands with spaces
+          if (command.includes(' ')) {
+            // For "add" command with description, use specific formatting
+            if (command.startsWith('add ')) {
+              console.log("Add command detected with description");
+              const description = command.substring(4);
+              // Send the add command first with special handling
+              tasksh.stdin.write('add' + '\n');
+              
+              // Then wait a bit and send the description
+              setTimeout(() => {
+                console.log("Sending description:", JSON.stringify(description));
+                tasksh.stdin.write(description + '\n');
+              }, 100);
+            } else {
+              // For other commands with spaces, send normally
+              tasksh.stdin.write(command + '\n');
+            }
+          } else {
+            // Regular commands without spaces
+            tasksh.stdin.write(command + '\n');
+          }
         } else if (data.type === "parse") {
           // Parse natural language to Taskwarrior command
           const command = await openai.parseCommand(data.text);
