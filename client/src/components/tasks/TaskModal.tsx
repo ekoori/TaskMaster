@@ -126,8 +126,12 @@ export default function TaskModal() {
     // Process tags
     const tagsArray = data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
     
+    // Convert "none" priority to empty string or null
+    const priority = data.priority === "none" ? "" : data.priority;
+    
     const taskData = {
       ...data,
+      priority,
       tags: tagsArray,
     };
     
@@ -145,7 +149,7 @@ export default function TaskModal() {
         description: "",
         annotations: "",
         project: "",
-        priority: "",
+        priority: "none",
         due: "",
         tags: "",
       });
@@ -175,11 +179,14 @@ export default function TaskModal() {
         dueDate = format(date, "yyyy-MM-dd");
       }
       
+      // Convert empty priority to "none" for the select input
+      const priorityValue = task.priority || "none";
+      
       form.reset({
         description: task.description || "",
         annotations: task.annotations || "",
         project: task.project || "",
-        priority: task.priority || "",
+        priority: priorityValue,
         due: dueDate,
         tags: task.tagsList ? task.tagsList.join(", ") : "",
       });
@@ -274,7 +281,7 @@ export default function TaskModal() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No Priority</SelectItem>
+                        <SelectItem value="none">No Priority</SelectItem>
                         <SelectItem value="L">Low</SelectItem>
                         <SelectItem value="M">Medium</SelectItem>
                         <SelectItem value="H">High</SelectItem>
