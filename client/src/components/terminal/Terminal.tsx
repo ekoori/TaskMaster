@@ -12,6 +12,7 @@ export default function Terminal() {
   const [inputBuffer, setInputBuffer] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  // Set a constant prompt that matches what tasksh will use
   const [prompt, setPrompt] = useState("tasksh> ");
   
   // Initialize terminal and WebSocket
@@ -92,7 +93,16 @@ export default function Terminal() {
       
       socket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
+          // Check if message is JSON parseable
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch (e) {
+            // If not JSON, treat as plain text output
+            term.writeln("\r\n" + event.data);
+            term.write(prompt);
+            return;
+          }
           
           if (data.type === "output") {
             // Write command output to terminal
@@ -113,7 +123,7 @@ export default function Terminal() {
             term.write(prompt);
           }
         } catch (error) {
-          console.error("Failed to parse WebSocket message:", error);
+          console.error("Failed to process WebSocket message:", error);
           term.writeln("\r\n\x1B[1;31mError processing server response\x1B[0m");
           term.write(prompt);
         }
@@ -171,6 +181,9 @@ export default function Terminal() {
       if (domEvent.key === "Enter") {
         const command = inputBuffer.trim();
         
+        // Always create a new line after an Enter
+        term.writeln("");
+        
         if (command) {
           // Add to history
           setHistory(prev => [...prev, command]);
@@ -178,14 +191,22 @@ export default function Terminal() {
           
           // Send command to server
           if (ws && ws.readyState === 1) { // WebSocket.OPEN is 1
+            // Disable the terminal input temporarily to prevent typing during command execution
+            term.setOption('disableStdin', true);
+            
+            // Send command to server, server will echo it back in the response
             ws.send(JSON.stringify({ type: "command", command }));
+            
+            // Re-enable after a short delay to allow for response
+            setTimeout(() => {
+              term.setOption('disableStdin', false);
+            }, 100);
           } else {
-            term.writeln("\r\n\x1B[1;31mWebSocket not connected. Try refreshing the page.\x1B[0m");
+            term.writeln("\x1B[1;31mWebSocket not connected. Try refreshing the page.\x1B[0m");
             term.write(prompt);
           }
         } else {
           // Empty command, just show a new prompt
-          term.writeln("");
           term.write(prompt);
         }
         
@@ -202,8 +223,14 @@ export default function Terminal() {
       
       // Handle normal printable characters
       if (printable) {
-        term.write(key);
-        setInputBuffer(inputBuffer + key);
+        // Special handling for space character to prevent issues
+        if (key === ' ') {
+          term.write('\u00A0'); // Use non-breaking space for display
+          setInputBuffer(inputBuffer + ' '); // But store normal space
+        } else {
+          term.write(key);
+          setInputBuffer(inputBuffer + key);
+        }
       }
     });
     

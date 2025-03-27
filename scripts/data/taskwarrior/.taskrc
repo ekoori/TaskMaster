@@ -1,0 +1,3 @@
+data.location=/home/runner/workspace/scripts/data/taskwarrior
+confirmation=no
+verbose=blank,label,new-id,edit,special,project,sync,unwait,recur

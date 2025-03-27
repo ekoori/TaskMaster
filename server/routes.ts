@@ -50,10 +50,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       TASKDATA: dataDir
     };
     
+    // Get path to tasksh
+    const taskshPath = "/nix/store/yfb4hsrh8pd94s7sr0dm0jx11kgrp0x1-tasksh-1.2.0/bin/tasksh";
+    
     // Spawn tasksh process
-    const tasksh = spawn('tasksh', [], { 
-      env, 
-      shell: true 
+    const tasksh = spawn(taskshPath, [], { 
+      env
     });
     
     // Initialize terminal session
@@ -100,6 +102,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const data = JSON.parse(message.toString());
         
         if (data.type === "command") {
+          console.log("Sending command to tasksh:", data.command);
+          
+          // Echo the command first to ensure it appears in terminal
+          ws.send(JSON.stringify({ 
+            type: "output", 
+            output: data.command
+          }));
+          
           // Send command to tasksh
           tasksh.stdin.write(data.command + '\n');
           

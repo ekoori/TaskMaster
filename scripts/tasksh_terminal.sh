@@ -21,5 +21,14 @@ echo "Type 'exit' to exit, or 'help' for tasksh commands"
 echo "You can also run any bash command prefixed with '!'"
 echo ""
 
-# Launch tasksh
-exec tasksh
+# Path to tasksh binary (fixed path in Replit environment)
+TASKSH_PATH="/nix/store/yfb4hsrh8pd94s7sr0dm0jx11kgrp0x1-tasksh-1.2.0/bin/tasksh"
+
+# Launch tasksh if the binary exists
+if [ -f "$TASKSH_PATH" ]; then
+  exec "$TASKSH_PATH"
+else
+  echo "Error: Could not find tasksh at $TASKSH_PATH"
+  echo "Falling back to standard bash shell"
+  exec bash
+fi
