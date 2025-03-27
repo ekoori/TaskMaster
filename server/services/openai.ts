@@ -33,17 +33,29 @@ DO NOT include "task" at the beginning of your commands. For example:
 - If the user asks "Mark my homework task as done", respond with:
   {EXECUTE_COMMAND: homework done}
 
+TASKWARRIOR SYNTAX GUIDELINES:
+1. Date formats: Always use YYYY-MM-DD format (e.g., due:2025-04-01)
+2. Relative dates: Use "due:today", "due:tomorrow", "due:sunday", "due:eom" (end of month), "due:eoy" (end of year)
+3. For adding durations: "due:today+2d" (2 days from today), "due:now+1w" (1 week from now)
+4. Time formats are not supported directly - only use dates, not times
+5. Tags: Use +tag format (e.g., +work +important)
+6. Priorities: Use priority:H (high), priority:M (medium), or priority:L (low)
+7. For complex filters, combine attributes with spaces: "project:Home priority:H +urgent list"
+8. For recurring tasks, use "recur:weekly" or "recur:daily" with the add command
+
+COMMON COMMANDS:
+- Add task: {EXECUTE_COMMAND: add Buy groceries due:tomorrow +shopping}
+- List tasks: {EXECUTE_COMMAND: list} or {EXECUTE_COMMAND: all}
+- Filter tasks: {EXECUTE_COMMAND: project:Home list}
+- Complete task: {EXECUTE_COMMAND: 1 done} (where 1 is the task ID)
+- Delete task: {EXECUTE_COMMAND: 1 delete}
+- Modify task: {EXECUTE_COMMAND: 1 modify priority:H}
+- Add project: {EXECUTE_COMMAND: add Make dinner project:Home}
+- View projects: {EXECUTE_COMMAND: projects}
+- View tags: {EXECUTE_COMMAND: tags}
+
 Always provide helpful, concise responses. When users ask you to perform a task action, execute the command directly instead of just suggesting it.
 If you're not sure about something, be honest about your limitations.
-
-Here are some things you can help with:
-- Executing Taskwarrior commands directly
-- Explaining Taskwarrior concepts and commands
-- Suggesting ways to organize tasks and projects
-- Helping prioritize tasks
-- Finding specific tasks
-- Creating Taskwarrior filter expressions
-- Translating natural language to Taskwarrior commands
 
 Always respond in a friendly, helpful manner. After executing a command, explain what you did.`;
   }
@@ -71,11 +83,30 @@ Always respond in a friendly, helpful manner. After executing a command, explain
   // Execute a Taskwarrior command and return the result
   async executeCommand(command: string): Promise<string> {
     try {
+      // Check for potentially invalid time formats before execution
+      if (command.includes('due:') || command.includes('wait:') || command.includes('until:') || command.includes('scheduled:')) {
+        // Fix common time format issues
+        if (command.match(/\d{1,2}:\d{2}/)) {
+          console.warn("Detected time value in command, which Taskwarrior doesn't support well:", command);
+          command = command.replace(/due:([^:\s]+\s+)?\d{1,2}:\d{2}/, 'due:$1');
+          command = command.replace(/wait:([^:\s]+\s+)?\d{1,2}:\d{2}/, 'wait:$1');
+          command = command.replace(/until:([^:\s]+\s+)?\d{1,2}:\d{2}/, 'until:$1');
+          command = command.replace(/scheduled:([^:\s]+\s+)?\d{1,2}:\d{2}/, 'scheduled:$1');
+          console.log("Fixed command:", command);
+        }
+      }
+      
       console.log(`Executing Taskwarrior command: ${command}`);
       const result = await this.taskwarrior.executeCommand(command);
       return result;
     } catch (error: any) {
       console.error("Command execution error:", error);
+      
+      // Add more specific error messages for common issues
+      if (error.message.includes("Invalid date") || error.message.includes("Invalid time")) {
+        return `Error executing command: There was an issue with the date/time format. Please use YYYY-MM-DD format for dates or relative formats like 'today', 'tomorrow', or 'due:today+2d'.`;
+      }
+      
       return `Error executing command: ${error.message}`;
     }
   }
@@ -143,7 +174,25 @@ Always respond in a friendly, helpful manner. After executing a command, explain
           content: `You are a translator from natural language to Taskwarrior commands.
 Convert the user's request into the corresponding Taskwarrior command.
 Respond with ONLY the Taskwarrior command, nothing else. Do not include any explanations or markdown.
-For example, if the user says "Show me all my pending tasks", you should respond with just "task status:pending list".`
+For example, if the user says "Show me all my pending tasks", you should respond with just "task status:pending list".
+
+TASKWARRIOR SYNTAX GUIDELINES:
+1. Date formats: Always use YYYY-MM-DD format (e.g., due:2025-04-01)
+2. Relative dates: Use "due:today", "due:tomorrow", "due:sunday", "due:eom" (end of month), "due:eoy" (end of year)
+3. For adding durations: "due:today+2d" (2 days from today), "due:now+1w" (1 week from now)
+4. Time formats are not supported directly - only use dates, not times
+5. Tags: Use +tag format (e.g., +work +important)
+6. Priorities: Use priority:H (high), priority:M (medium), or priority:L (low)
+7. For complex filters, combine attributes with spaces: "project:Home priority:H +urgent list"
+8. For recurring tasks, use "recur:weekly" or "recur:daily" with the add command
+
+Common taskwarrior patterns:
+- Add task: task add Buy groceries due:tomorrow +shopping
+- List tasks: task list or task all
+- Filter tasks: task project:Home list
+- Complete task: task 1 done
+- Delete task: task 1 delete
+- Modify task: task 1 modify priority:H`
         },
         { role: "user", content: text }
       ];
