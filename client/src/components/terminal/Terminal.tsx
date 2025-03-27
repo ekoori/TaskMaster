@@ -114,18 +114,27 @@ export default function Terminal() {
             
             // Write the prompt
             term.write(prompt);
+            
+            // Ensure the input buffer is cleared and ready for new input
+            setInputBuffer("");
           } else if (data.type === "command") {
-            // Set suggested command from AI
-            setInputBuffer(data.command);
-            term.write(data.command);
+            // Set suggested command from AI for auto-completion
+            const newBuffer = data.command;
+            setInputBuffer(newBuffer);
+            
+            // Render the entire line with the suggested command
+            term.write("\r" + prompt);
+            term.write(newBuffer);
           } else if (data.type === "error") {
             term.writeln("\r\n\x1B[1;31mError: " + data.error + "\x1B[0m");
             term.write(prompt);
+            setInputBuffer("");
           }
         } catch (error) {
           console.error("Failed to process WebSocket message:", error);
           term.writeln("\r\n\x1B[1;31mError processing server response\x1B[0m");
           term.write(prompt);
+          setInputBuffer("");
         }
       };
     };
@@ -133,7 +142,24 @@ export default function Terminal() {
     // Initialize WebSocket connection
     connectWebSocket();
     
-    // Set up terminal key input handling
+    // We'll create a completely new approach for handling terminal input
+    const renderLine = (buffer: string) => {
+      // Get cursor position and current line length
+      const currentLineLength = prompt.length + inputBuffer.length;
+      
+      // Move to start of line and clear it completely
+      term.write("\r");
+      term.write(" ".repeat(currentLineLength + 10)); // Add extra spaces to ensure full clearing
+      
+      // Move back to start and write the prompt and buffer
+      term.write("\r" + prompt + buffer);
+      
+      // Debug logging for space issues
+      if (buffer.includes(" ")) {
+        console.log("Rendering buffer with space:", JSON.stringify(buffer));
+      }
+    };
+    
     term.onKey(({ key, domEvent }) => {
       const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
       
@@ -143,11 +169,9 @@ export default function Terminal() {
           const newIndex = historyIndex + 1;
           setHistoryIndex(newIndex);
           
-          // Clear current line and write history item
-          const promptLength = prompt.length;
-          term.write("\r" + prompt + " ".repeat(inputBuffer.length));
-          term.write("\r" + prompt + history[history.length - 1 - newIndex]);
-          setInputBuffer(history[history.length - 1 - newIndex]);
+          const historyItem = history[history.length - 1 - newIndex];
+          renderLine(historyItem);
+          setInputBuffer(historyItem);
         }
         return;
       } else if (domEvent.key === "ArrowDown") {
@@ -155,14 +179,12 @@ export default function Terminal() {
           const newIndex = historyIndex - 1;
           setHistoryIndex(newIndex);
           
-          // Clear current line and write history item
-          term.write("\r" + prompt + " ".repeat(inputBuffer.length));
-          term.write("\r" + prompt + history[history.length - 1 - newIndex]);
-          setInputBuffer(history[history.length - 1 - newIndex]);
+          const historyItem = history[history.length - 1 - newIndex];
+          renderLine(historyItem);
+          setInputBuffer(historyItem);
         } else if (historyIndex === 0) {
           setHistoryIndex(-1);
-          term.write("\r" + prompt + " ".repeat(inputBuffer.length));
-          term.write("\r" + prompt);
+          renderLine("");
           setInputBuffer("");
         }
         return;
@@ -170,9 +192,10 @@ export default function Terminal() {
       
       // Handle backspace
       if (domEvent.key === "Backspace") {
-        if (inputBuffer.length > 0 && term.buffer.active.cursorX > prompt.length) {
-          term.write("\b \b");
-          setInputBuffer(inputBuffer.slice(0, -1));
+        if (inputBuffer.length > 0) {
+          const newBuffer = inputBuffer.slice(0, -1);
+          setInputBuffer(newBuffer);
+          renderLine(newBuffer);
         }
         return;
       }
@@ -181,7 +204,7 @@ export default function Terminal() {
       if (domEvent.key === "Enter") {
         const command = inputBuffer.trim();
         
-        // Always create a new line after an Enter
+        // Always create a new line after Enter
         term.writeln("");
         
         if (command) {
@@ -190,12 +213,8 @@ export default function Terminal() {
           setHistoryIndex(-1);
           
           // Send command to server
-          if (ws && ws.readyState === 1) { // WebSocket.OPEN is 1
-            // Send command to server, server will echo it back in the response
+          if (ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ type: "command", command }));
-            
-            // XTerm.js doesn't have a setOption in this version,
-            // we could implement a lock through state if this becomes an issue
           } else {
             term.writeln("\x1B[1;31mWebSocket not connected. Try refreshing the page.\x1B[0m");
             term.write(prompt);
@@ -212,27 +231,21 @@ export default function Terminal() {
       // Handle tab completion (optional enhancement)
       if (domEvent.key === "Tab") {
         domEvent.preventDefault();
-        // Could implement tab completion here by sending a special message to the server
         return;
       }
       
-      // Handle normal printable characters
+      // Handle all printable characters including spaces
       if (printable) {
-        // Special handling for space - the most reliable approach
-        if (key === ' ' || domEvent.key === ' ' || domEvent.key === 'Space') {
-          // Update buffer first
-          const newBuffer = inputBuffer + ' ';
-          setInputBuffer(newBuffer);
-          
-          // Use a consistent rendering approach for spaces
-          term.write(' ');
-          
-          // Log for debugging
-          console.log("Space character entered, buffer updated to:", newBuffer);
-        } else {
-          // For non-space characters, use the standard approach
-          term.write(key);
-          setInputBuffer(inputBuffer + key);
+        // Update the input buffer with the new character
+        const newBuffer = inputBuffer + key;
+        setInputBuffer(newBuffer);
+        
+        // Re-render the entire line to ensure consistency
+        renderLine(newBuffer);
+        
+        // Log spaces for debugging
+        if (key === ' ') {
+          console.log("Space character added, new buffer:", newBuffer);
         }
       }
     });
