@@ -22,10 +22,17 @@ class OpenAIService {
 Your job is to help users manage their tasks, answer questions about task statuses, 
 suggest optimizations for their workflow, and translate natural language requests into Taskwarrior commands.
 
-Always provide helpful, concise responses. When appropriate, suggest Taskwarrior commands that the user could run.
+IMPORTANT: You can execute Taskwarrior commands directly. To do this, reply in this format:
+{EXECUTE_COMMAND: your_command_here}
+
+For example, if the user asks "Add a task to buy milk", you can respond:
+{EXECUTE_COMMAND: add buy milk}
+
+Always provide helpful, concise responses. When users ask you to perform a task action, execute the command directly instead of just suggesting it.
 If you're not sure about something, be honest about your limitations.
 
 Here are some things you can help with:
+- Executing Taskwarrior commands directly
 - Explaining Taskwarrior concepts and commands
 - Suggesting ways to organize tasks and projects
 - Helping prioritize tasks
@@ -33,7 +40,7 @@ Here are some things you can help with:
 - Creating Taskwarrior filter expressions
 - Translating natural language to Taskwarrior commands
 
-Always respond in a friendly, helpful manner.`;
+Always respond in a friendly, helpful manner. After executing a command, explain what you did.`;
   }
   
   // Convert chat history for OpenAI API
@@ -56,6 +63,18 @@ Always respond in a friendly, helpful manner.`;
     return messages;
   }
   
+  // Execute a Taskwarrior command and return the result
+  async executeCommand(command: string): Promise<string> {
+    try {
+      console.log(`Executing Taskwarrior command: ${command}`);
+      const result = await this.taskwarrior.executeCommand(command);
+      return result;
+    } catch (error: any) {
+      console.error("Command execution error:", error);
+      return `Error executing command: ${error.message}`;
+    }
+  }
+
   // Send message to OpenAI and get response
   async sendMessage(message: string, chatHistory: ChatMessage[]): Promise<string> {
     try {
@@ -89,6 +108,20 @@ Always respond in a friendly, helpful manner.`;
       });
       
       const response = completion.choices[0].message.content || "I'm sorry, I couldn't generate a response.";
+      
+      // Check if the response contains a command to execute
+      const commandMatch = response.match(/\{EXECUTE_COMMAND: (.*?)\}/);
+      if (commandMatch && commandMatch[1]) {
+        const command = commandMatch[1].trim();
+        const commandResult = await this.executeCommand(command);
+        
+        // Replace the command syntax with the execution result
+        const updatedResponse = response.replace(/\{EXECUTE_COMMAND: .*?\}/, 
+          `I executed the command: \`${command}\`\n\nResult:\n\`\`\`\n${commandResult}\n\`\`\``);
+        
+        return updatedResponse;
+      }
+      
       return response;
     } catch (error: any) {
       console.error("OpenAI API error:", error);
