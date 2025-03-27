@@ -219,6 +219,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Task refresh endpoint - used by Taskwarrior hooks
+  api.post("/tasks/refresh", async (_req: Request, res: Response) => {
+    try {
+      console.log("Task data change detected via hook");
+      // We don't need to do anything here as clients will poll for updates
+      // In a production app, we might use WebSockets to notify clients
+      res.status(200).json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // Projects API
   api.get("/projects", async (_req: Request, res: Response) => {
     try {

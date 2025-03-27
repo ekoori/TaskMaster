@@ -1,2 +1,4 @@
 data.location=/home/runner/workspace/data/taskwarrior
 confirmation=no
+hooks=1
+hooks.location=/home/runner/workspace/data/taskwarrior/hooks
