@@ -1,12 +1,37 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { InsertTask, Task, TaskWithMetadata } from "@shared/schema";
+import * as path from "path";
+import * as fs from "fs";
 
 const execAsync = promisify(exec);
 
 export class TaskwarriorService {
-  private baseCommand = "task";
+  private dataDir: string;
+  private baseCommand: string;
   private exportCommand = "export";
+  
+  constructor() {
+    // Use a persistent data directory within the project
+    this.dataDir = path.resolve(process.cwd(), "data/taskwarrior");
+    
+    // Ensure the data directory exists
+    if (!fs.existsSync(this.dataDir)) {
+      fs.mkdirSync(this.dataDir, { recursive: true });
+    }
+    
+    // Create the taskrc file if it doesn't exist
+    const taskrcPath = path.join(this.dataDir, ".taskrc");
+    if (!fs.existsSync(taskrcPath)) {
+      const taskrcContent = 
+        `data.location=${this.dataDir}\n` +
+        `confirmation=no\n`;
+      fs.writeFileSync(taskrcPath, taskrcContent, 'utf8');
+    }
+    
+    // Configure task command with the custom rc file
+    this.baseCommand = `task rc:${taskrcPath}`;
+  }
   
   // Convert Taskwarrior JSON to our Task schema
   private convertTaskwarriorTask(twTask: any): TaskWithMetadata {
@@ -15,21 +40,21 @@ export class TaskwarriorService {
       id: twTask.uuid || `tw_${Date.now()}`,
       description: twTask.description || "",
       status: twTask.status || "pending",
-      priority: twTask.priority,
-      project: twTask.project,
-      tags: twTask.tags || [],
+      priority: twTask.priority || null,
+      project: twTask.project || null,
+      tags: twTask.tags || null,
       tagsList: twTask.tags || [],
-      due: twTask.due ? new Date(twTask.due) : undefined,
-      wait: twTask.wait ? new Date(twTask.wait) : undefined,
-      scheduled: twTask.scheduled ? new Date(twTask.scheduled) : undefined,
-      until: twTask.until ? new Date(twTask.until) : undefined,
+      due: twTask.due ? new Date(twTask.due) : null,
+      wait: twTask.wait ? new Date(twTask.wait) : null,
+      scheduled: twTask.scheduled ? new Date(twTask.scheduled) : null,
+      until: twTask.until ? new Date(twTask.until) : null,
       annotations: Array.isArray(twTask.annotations) 
         ? twTask.annotations.map((a: any) => a.description).join("\n") 
-        : (twTask.annotations || ""),
+        : (twTask.annotations || null),
       created: twTask.entry ? new Date(twTask.entry) : new Date(),
       modified: twTask.modified ? new Date(twTask.modified) : new Date(),
-      completed: twTask.end ? new Date(twTask.end) : undefined,
-      urgency: twTask.urgency?.toString() || "0",
+      completed: twTask.end ? new Date(twTask.end) : null,
+      urgency: twTask.urgency?.toString() || null,
     };
     
     return task;

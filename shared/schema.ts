@@ -109,7 +109,7 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 
 // Enhanced types for frontend
 export type TaskWithMetadata = Task & {
-  tagsList?: string[];
+  tagsList: string[]; // Non-optional array for consistent rendering
 };
 
 export type TaskFilter = {
