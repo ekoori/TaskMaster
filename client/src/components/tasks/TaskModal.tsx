@@ -129,10 +129,16 @@ export default function TaskModal() {
     // Convert "none" priority to empty string or null
     const priority = data.priority === "none" ? "" : data.priority;
     
+    // Process due date (convert from string to Date or null)
+    const due = data.due ? new Date(data.due) : null;
+    
     const taskData = {
-      ...data,
+      description: data.description,
+      annotations: data.annotations || null,
+      project: data.project || null,
       priority,
-      tags: tagsArray,
+      tags: tagsArray.length > 0 ? tagsArray : null,
+      due,
     };
     
     if (isEdit && currentTaskId) {

@@ -38,13 +38,27 @@ export const tasks = pgTable("tasks", {
   urgency: text("urgency"), // Computed by Taskwarrior
 });
 
-export const insertTaskSchema = createInsertSchema(tasks).omit({
-  id: true,
-  urgency: true,
-  created: true,
-  modified: true,
-  completed: true,
-});
+export const insertTaskSchema = createInsertSchema(tasks)
+  .omit({
+    id: true,
+    urgency: true,
+    created: true,
+    modified: true,
+    completed: true,
+  })
+  .extend({
+    // Make only description required, all other fields optional
+    description: z.string().min(1, "Description is required"),
+    annotations: z.string().nullable().optional(),
+    project: z.string().nullable().optional(),
+    priority: z.string().nullable().optional(),
+    status: z.string().default("pending").optional(),
+    tags: z.array(z.string()).nullable().optional(),
+    due: z.date().nullable().optional(),
+    wait: z.date().nullable().optional(),
+    scheduled: z.date().nullable().optional(),
+    until: z.date().nullable().optional(),
+  });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
