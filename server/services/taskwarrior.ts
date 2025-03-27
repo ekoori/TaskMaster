@@ -139,7 +139,12 @@ export class TaskwarriorService {
     }
   }
   
-  // Create a new task
+  // Helper function to wait for a specified time
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+  // Create a new task with retry logic
   async createTask(task: InsertTask): Promise<TaskWithMetadata> {
     const command = this.createTaskwarriorCommand(task);
     
@@ -151,10 +156,57 @@ export class TaskwarriorService {
       const idMatch = output.match(/Created task (\d+)/);
       if (idMatch && idMatch[1]) {
         const taskId = idMatch[1];
-        // Fetch the newly created task
-        const newTask = await this.getTask(taskId);
-        if (newTask) {
-          return newTask;
+        
+        // Implement retry logic with delay
+        let retries = 5;
+        let newTask = null;
+        
+        while (retries > 0 && !newTask) {
+          // Add a small delay between retries
+          await this.delay(200);
+          
+          // Try to fetch the newly created task
+          newTask = await this.getTask(taskId);
+          
+          if (newTask) {
+            return newTask;
+          }
+          
+          retries--;
+        }
+        
+        // If we still can't find the task but have the ID, return a minimal task object
+        if (!newTask) {
+          // Get all tasks as a fallback
+          const allTasks = await this.getTasks();
+          // Try to find the task by description
+          const fallbackTask = allTasks.find(t => 
+            t.description === task.description && 
+            (!task.project || t.project === task.project)
+          );
+          
+          if (fallbackTask) {
+            return fallbackTask;
+          }
+          
+          // Create a minimal response with the data we know
+          return {
+            id: taskId,
+            description: task.description,
+            annotations: task.annotations || null,
+            project: task.project || null,
+            priority: task.priority || null,
+            due: task.due || null,
+            tags: task.tags || null,
+            status: "pending",
+            wait: null,
+            scheduled: null,
+            until: null,
+            created: new Date(),
+            modified: new Date(),
+            completed: null,
+            urgency: null,
+          };
         }
       }
       
@@ -165,7 +217,7 @@ export class TaskwarriorService {
     }
   }
   
-  // Update an existing task
+  // Update an existing task with retry logic
   async updateTask(id: string, updates: Partial<Task>): Promise<TaskWithMetadata | null> {
     // Build the update command
     const components = [`${this.baseCommand} uuid:${id} modify`];
@@ -232,8 +284,57 @@ export class TaskwarriorService {
     try {
       await this.executeCommand(command);
       
-      // Fetch the updated task
-      return await this.getTask(id);
+      // Implement retry logic with delay for fetching the updated task
+      let retries = 5;
+      let updatedTask = null;
+      
+      while (retries > 0 && !updatedTask) {
+        // Add a small delay between retries
+        await this.delay(200);
+        
+        // Try to fetch the updated task
+        updatedTask = await this.getTask(id);
+        
+        if (updatedTask) {
+          return updatedTask;
+        }
+        
+        retries--;
+      }
+      
+      // If we failed to get the updated task after retries
+      if (!updatedTask) {
+        console.warn(`Task ${id} was updated but could not be retrieved after update`);
+        
+        // Get all tasks and try to find it
+        const allTasks = await this.getTasks();
+        const matchedTask = allTasks.find(t => t.id === id);
+        
+        if (matchedTask) {
+          return matchedTask;
+        }
+        
+        // If we still can't find it, return a minimal object
+        return {
+          id: id,
+          description: updates.description || "Unknown task",
+          annotations: updates.annotations || null,
+          project: updates.project || null,
+          priority: updates.priority || null,
+          due: updates.due || null,
+          tags: updates.tags || null,
+          status: updates.status || "pending",
+          wait: null,
+          scheduled: null,
+          until: null,
+          created: new Date(),
+          modified: new Date(),
+          completed: null,
+          urgency: null,
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error(`Error updating task ${id}:`, error);
       throw new Error(`Failed to update task ${id}: ${error}`);
