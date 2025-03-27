@@ -232,6 +232,7 @@ export class TaskwarriorService {
             priority: task.priority || null,
             due: task.due || null,
             tags: task.tags || null,
+            tagsList: task.tags || [], // Add required tagsList property
             status: "pending",
             wait: null,
             scheduled: null,
@@ -357,6 +358,7 @@ export class TaskwarriorService {
           priority: updates.priority || null,
           due: updates.due || null,
           tags: updates.tags || null,
+          tagsList: updates.tags || [], // Add required tagsList property
           status: updates.status || "pending",
           wait: null,
           scheduled: null,
