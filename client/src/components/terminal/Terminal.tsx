@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Terminal as XTerminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
@@ -46,47 +47,76 @@ export default function Terminal() {
     // Create WebSocket connection with a specific path to avoid conflicts with Vite's WebSocket
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProtocol}//${window.location.host}/terminal`;
-    const socket = new WebSocket(wsUrl);
     
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-    };
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000; // 2 seconds
     
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+    const connectWebSocket = () => {
+      const socket = new WebSocket(wsUrl);
+      
+      socket.onopen = () => {
+        console.log("WebSocket connection established");
+        reconnectAttempts = 0;
+        term.writeln("\r\n\x1B[1;32mTerminal connected\x1B[0m");
+        term.write("$ ");
         
-        if (data.type === "output") {
-          // Write command output to terminal
-          term.writeln("\r\n" + data.output);
-          term.write("$ ");
-        } else if (data.type === "command") {
-          // Set suggested command from AI
-          setInputBuffer(data.command);
-          term.write(data.command);
-        } else if (data.type === "error") {
-          term.writeln("\r\n\x1B[1;31mError: " + data.error + "\x1B[0m");
+        // Store the socket in state once it's open
+        setWs(socket);
+      };
+      
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        term.writeln("\r\n\x1B[1;31mWebSocket error. Connection might be lost.\x1B[0m");
+        term.write("$ ");
+      };
+      
+      socket.onclose = (event) => {
+        console.log("WebSocket connection closed", event.code, event.reason);
+        term.writeln("\r\n\x1B[1;31mConnection closed.\x1B[0m");
+        
+        // Clear the socket from state
+        setWs(null);
+        
+        // Attempt to reconnect
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          term.writeln(`\r\n\x1B[1;33mAttempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...\x1B[0m`);
+          
+          setTimeout(() => {
+            connectWebSocket();
+          }, reconnectDelay);
+        } else {
+          term.writeln("\r\n\x1B[1;31mFailed to reconnect after multiple attempts. Please refresh the page.\x1B[0m");
+        }
+      };
+      
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === "output") {
+            // Write command output to terminal
+            term.writeln("\r\n" + data.output);
+            term.write("$ ");
+          } else if (data.type === "command") {
+            // Set suggested command from AI
+            setInputBuffer(data.command);
+            term.write(data.command);
+          } else if (data.type === "error") {
+            term.writeln("\r\n\x1B[1;31mError: " + data.error + "\x1B[0m");
+            term.write("$ ");
+          }
+        } catch (error) {
+          console.error("Failed to parse WebSocket message:", error);
+          term.writeln("\r\n\x1B[1;31mError processing server response\x1B[0m");
           term.write("$ ");
         }
-      } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
-        term.writeln("\r\n\x1B[1;31mError processing server response\x1B[0m");
-        term.write("$ ");
-      }
+      };
     };
     
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      term.writeln("\r\n\x1B[1;31mWebSocket error. Connection might be lost.\x1B[0m");
-      term.write("$ ");
-    };
-    
-    socket.onclose = () => {
-      console.log("WebSocket connection closed");
-      term.writeln("\r\n\x1B[1;31mConnection closed. Refresh the page to reconnect.\x1B[0m");
-    };
-    
-    setWs(socket);
+    // Initialize WebSocket connection
+    connectWebSocket();
     
     // Set up terminal key input handling
     term.onKey(({ key, domEvent }) => {
@@ -142,7 +172,7 @@ export default function Terminal() {
           setHistoryIndex(-1);
           
           // Send command to server
-          if (ws && ws.readyState === WebSocket.OPEN) {
+          if (ws && ws.readyState === 1) { // WebSocket.OPEN is 1
             ws.send(JSON.stringify({ type: "command", command }));
           } else {
             term.writeln("\r\n\x1B[1;31mWebSocket not connected. Try refreshing the page.\x1B[0m");
@@ -183,8 +213,8 @@ export default function Terminal() {
     return () => {
       window.removeEventListener("resize", handleResize);
       
-      if (socket) {
-        socket.close();
+      if (ws) {
+        ws.close();
       }
       
       if (term) {

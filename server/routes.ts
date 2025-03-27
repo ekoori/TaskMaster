@@ -3,9 +3,12 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { z } from "zod";
 import { storage } from "./storage";
-import taskwarrior from "./services/taskwarrior";
+import { TaskwarriorService } from "./services/taskwarrior";
 import openai from "./services/openai";
 import { insertTaskSchema, insertChatMessageSchema } from "@shared/schema";
+
+// Initialize services
+const taskwarrior = new TaskwarriorService();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);

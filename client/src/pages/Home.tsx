@@ -1,3 +1,4 @@
+import React from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import TaskList from "@/components/tasks/TaskList";
 import ChatInterface from "@/components/chat/ChatInterface";

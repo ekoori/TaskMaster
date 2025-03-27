@@ -1,17 +1,19 @@
 import OpenAI from "openai";
 import { ChatMessage } from "@shared/schema";
-import taskwarrior from "./taskwarrior";
+import { TaskwarriorService } from "./taskwarrior";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const OPENAI_MODEL = "gpt-4o";
 
 class OpenAIService {
   private openai: OpenAI;
+  private taskwarrior: TaskwarriorService;
   
   constructor() {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY || "", // Will be provided through environment variables
     });
+    this.taskwarrior = new TaskwarriorService();
   }
   
   // Generate system message for the AI
@@ -35,18 +37,20 @@ Always respond in a friendly, helpful manner.`;
   }
   
   // Convert chat history for OpenAI API
-  private formatChatHistory(chatHistory: ChatMessage[]): Array<{role: string, content: string}> {
+  private formatChatHistory(chatHistory: ChatMessage[]): Array<OpenAI.Chat.ChatCompletionMessageParam> {
     // Start with system message
-    const messages: Array<{role: string, content: string}> = [
+    const messages: Array<OpenAI.Chat.ChatCompletionMessageParam> = [
       { role: "system", content: this.generateSystemMessage() }
     ];
     
     // Add chat history
     chatHistory.forEach(message => {
-      messages.push({
-        role: message.role as "user" | "assistant",
-        content: message.content
-      });
+      if (message.role === "user" || message.role === "assistant") {
+        messages.push({
+          role: message.role,
+          content: message.content
+        });
+      }
     });
     
     return messages;
@@ -64,9 +68,9 @@ Always respond in a friendly, helpful manner.`;
       const formattedMessages = this.formatChatHistory(updatedHistory);
       
       // Get tasks from Taskwarrior to provide context
-      const tasks = await taskwarrior.getTasks();
+      const tasks = await this.taskwarrior.getTasks();
       const taskContext = `Current tasks (${tasks.length} total):\n` + 
-        tasks.slice(0, 10).map(t => 
+        tasks.slice(0, 10).map((t: any) => 
           `- ${t.description} (${t.status}, ${t.project || 'No project'}, ${t.priority || 'No priority'}, ${t.due ? 'Due: ' + t.due.toISOString().split('T')[0] : 'No due date'})`
         ).join('\n');
       
@@ -74,7 +78,7 @@ Always respond in a friendly, helpful manner.`;
       formattedMessages.push({ 
         role: "system", 
         content: taskContext
-      });
+      } as OpenAI.Chat.ChatCompletionSystemMessageParam);
       
       // Call OpenAI API
       const completion = await this.openai.chat.completions.create({
@@ -95,18 +99,20 @@ Always respond in a friendly, helpful manner.`;
   // Parse natural language into Taskwarrior command
   async parseCommand(text: string): Promise<string> {
     try {
-      const completion = await this.openai.chat.completions.create({
-        model: OPENAI_MODEL,
-        messages: [
-          {
-            role: "system",
-            content: `You are a translator from natural language to Taskwarrior commands.
+      const messages: Array<OpenAI.Chat.ChatCompletionMessageParam> = [
+        {
+          role: "system",
+          content: `You are a translator from natural language to Taskwarrior commands.
 Convert the user's request into the corresponding Taskwarrior command.
 Respond with ONLY the Taskwarrior command, nothing else. Do not include any explanations or markdown.
 For example, if the user says "Show me all my pending tasks", you should respond with just "task status:pending list".`
-          },
-          { role: "user", content: text }
-        ],
+        },
+        { role: "user", content: text }
+      ];
+      
+      const completion = await this.openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: messages,
         temperature: 0.3,
         max_tokens: 150,
       });
