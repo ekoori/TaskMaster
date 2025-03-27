@@ -12,6 +12,7 @@ export default function Terminal() {
   const [inputBuffer, setInputBuffer] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [prompt, setPrompt] = useState("tasksh> ");
   
   // Initialize terminal and WebSocket
   useEffect(() => {
@@ -38,11 +39,9 @@ export default function Terminal() {
     
     terminalInstance.current = term;
     
-    // Write welcome message
-    term.writeln("\x1B[1;3;32mWelcome to TaskWarrior Terminal\x1B[0m");
-    term.writeln("\x1B[3mType 'help' for a list of commands.\x1B[0m");
-    term.writeln("");
-    term.write("$ ");
+    // Write welcome message - the actual welcome message will come from the server/tasksh
+    term.writeln("\x1B[1;3;32mConnecting to Taskwarrior Shell...\x1B[0m");
+    term.write(prompt);
     
     // Create WebSocket connection with a specific path to avoid conflicts with Vite's WebSocket
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -58,8 +57,8 @@ export default function Terminal() {
       socket.onopen = () => {
         console.log("WebSocket connection established");
         reconnectAttempts = 0;
-        term.writeln("\r\n\x1B[1;32mTerminal connected\x1B[0m");
-        term.write("$ ");
+        
+        // Don't write anything here, the tasksh process will send its own welcome message
         
         // Store the socket in state once it's open
         setWs(socket);
@@ -68,7 +67,7 @@ export default function Terminal() {
       socket.onerror = (error) => {
         console.error("WebSocket error:", error);
         term.writeln("\r\n\x1B[1;31mWebSocket error. Connection might be lost.\x1B[0m");
-        term.write("$ ");
+        term.write(prompt);
       };
       
       socket.onclose = (event) => {
@@ -97,20 +96,26 @@ export default function Terminal() {
           
           if (data.type === "output") {
             // Write command output to terminal
-            term.writeln("\r\n" + data.output);
-            term.write("$ ");
+            // Check if the output contains a tasksh prompt and strip it out
+            const output = data.output.replace(/^tasksh> /gm, "");
+            
+            // Write output to terminal
+            term.writeln("\r\n" + output);
+            
+            // Write the prompt
+            term.write(prompt);
           } else if (data.type === "command") {
             // Set suggested command from AI
             setInputBuffer(data.command);
             term.write(data.command);
           } else if (data.type === "error") {
             term.writeln("\r\n\x1B[1;31mError: " + data.error + "\x1B[0m");
-            term.write("$ ");
+            term.write(prompt);
           }
         } catch (error) {
           console.error("Failed to parse WebSocket message:", error);
           term.writeln("\r\n\x1B[1;31mError processing server response\x1B[0m");
-          term.write("$ ");
+          term.write(prompt);
         }
       };
     };
@@ -129,9 +134,9 @@ export default function Terminal() {
           setHistoryIndex(newIndex);
           
           // Clear current line and write history item
-          const currentLine = term.buffer.active.cursorX - 2;
-          term.write("\r$ " + " ".repeat(inputBuffer.length));
-          term.write("\r$ " + history[history.length - 1 - newIndex]);
+          const promptLength = prompt.length;
+          term.write("\r" + prompt + " ".repeat(inputBuffer.length));
+          term.write("\r" + prompt + history[history.length - 1 - newIndex]);
           setInputBuffer(history[history.length - 1 - newIndex]);
         }
         return;
@@ -141,13 +146,13 @@ export default function Terminal() {
           setHistoryIndex(newIndex);
           
           // Clear current line and write history item
-          term.write("\r$ " + " ".repeat(inputBuffer.length));
-          term.write("\r$ " + history[history.length - 1 - newIndex]);
+          term.write("\r" + prompt + " ".repeat(inputBuffer.length));
+          term.write("\r" + prompt + history[history.length - 1 - newIndex]);
           setInputBuffer(history[history.length - 1 - newIndex]);
         } else if (historyIndex === 0) {
           setHistoryIndex(-1);
-          term.write("\r$ " + " ".repeat(inputBuffer.length));
-          term.write("\r$ ");
+          term.write("\r" + prompt + " ".repeat(inputBuffer.length));
+          term.write("\r" + prompt);
           setInputBuffer("");
         }
         return;
@@ -155,7 +160,7 @@ export default function Terminal() {
       
       // Handle backspace
       if (domEvent.key === "Backspace") {
-        if (inputBuffer.length > 0 && term.buffer.active.cursorX > 2) {
+        if (inputBuffer.length > 0 && term.buffer.active.cursorX > prompt.length) {
           term.write("\b \b");
           setInputBuffer(inputBuffer.slice(0, -1));
         }
@@ -176,12 +181,12 @@ export default function Terminal() {
             ws.send(JSON.stringify({ type: "command", command }));
           } else {
             term.writeln("\r\n\x1B[1;31mWebSocket not connected. Try refreshing the page.\x1B[0m");
-            term.write("$ ");
+            term.write(prompt);
           }
         } else {
           // Empty command, just show a new prompt
           term.writeln("");
-          term.write("$ ");
+          term.write(prompt);
         }
         
         setInputBuffer("");
@@ -191,7 +196,7 @@ export default function Terminal() {
       // Handle tab completion (optional enhancement)
       if (domEvent.key === "Tab") {
         domEvent.preventDefault();
-        // Could implement tab completion here
+        // Could implement tab completion here by sending a special message to the server
         return;
       }
       
@@ -221,7 +226,7 @@ export default function Terminal() {
         term.dispose();
       }
     };
-  }, []);
+  }, [prompt]);
   
   // Resize terminal when its container becomes visible
   useEffect(() => {
@@ -237,7 +242,7 @@ export default function Terminal() {
       <div 
         ref={terminalRef}
         className="rounded-md overflow-hidden" 
-        style={{ height: "300px" }}
+        style={{ height: "400px" }}
       />
     </div>
   );

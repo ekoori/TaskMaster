@@ -6,6 +6,9 @@ import { storage } from "./storage";
 import { TaskwarriorService } from "./services/taskwarrior";
 import openai from "./services/openai";
 import { insertTaskSchema, insertChatMessageSchema } from "@shared/schema";
+import { spawn } from "child_process";
+import path from "path";
+import fs from "fs";
 
 // Initialize services
 const taskwarrior = new TaskwarriorService();
@@ -22,14 +25,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on("connection", (ws) => {
     console.log("Terminal WebSocket connection established");
     
+    // Set up Taskwarrior environment
+    const dataDir = path.resolve(process.cwd(), "data/taskwarrior");
+    const taskrcPath = path.join(dataDir, ".taskrc");
+    
+    // Ensure the data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    // Create default taskrc if it doesn't exist
+    if (!fs.existsSync(taskrcPath)) {
+      const taskrcContent = 
+        `data.location=${dataDir}\n` +
+        `confirmation=no\n` +
+        `verbose=blank,label,new-id,edit,special,project,sync,unwait,recur\n`;
+      fs.writeFileSync(taskrcPath, taskrcContent, 'utf8');
+    }
+    
+    // Environment for tasksh process
+    const env = {
+      ...process.env,
+      TASKRC: taskrcPath,
+      TASKDATA: dataDir
+    };
+    
+    // Spawn tasksh process
+    const tasksh = spawn('tasksh', [], { 
+      env, 
+      shell: true 
+    });
+    
+    // Initialize terminal session
+    let terminated = false;
+    
+    // Send welcome message
+    ws.send(JSON.stringify({ 
+      type: "output", 
+      output: "Welcome to Taskwarrior Shell (tasksh)\nType commands directly without 'task' prefix\nType 'exit' to close the terminal session\n" 
+    }));
+    
+    // Handle tasksh stdout
+    tasksh.stdout.on('data', (data) => {
+      if (!terminated) {
+        ws.send(JSON.stringify({ type: "output", output: data.toString() }));
+      }
+    });
+    
+    // Handle tasksh stderr
+    tasksh.stderr.on('data', (data) => {
+      if (!terminated) {
+        ws.send(JSON.stringify({ type: "error", error: data.toString() }));
+      }
+    });
+    
+    // Handle tasksh process exit
+    tasksh.on('close', (code) => {
+      console.log(`tasksh process exited with code ${code}`);
+      if (!terminated) {
+        ws.send(JSON.stringify({ 
+          type: "output", 
+          output: `\nTaskwarrior shell session ended. Refresh to start a new session.` 
+        }));
+        terminated = true;
+        ws.close();
+      }
+    });
+    
+    // Handle WebSocket messages from client
     ws.on("message", async (message) => {
       try {
+        if (terminated) return;
+        
         const data = JSON.parse(message.toString());
         
         if (data.type === "command") {
-          // Execute Taskwarrior command
-          const result = await taskwarrior.executeCommand(data.command);
-          ws.send(JSON.stringify({ type: "output", output: result }));
+          // Send command to tasksh
+          tasksh.stdin.write(data.command + '\n');
+          
         } else if (data.type === "parse") {
           // Parse natural language to Taskwarrior command
           const command = await openai.parseCommand(data.text);
@@ -37,12 +110,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error("WebSocket error:", error);
-        ws.send(JSON.stringify({ type: "error", error: "Failed to process command" }));
+        if (!terminated) {
+          ws.send(JSON.stringify({ type: "error", error: "Failed to process command" }));
+        }
       }
     });
     
+    // Handle WebSocket close
     ws.on("close", () => {
       console.log("WebSocket connection closed");
+      if (!terminated) {
+        terminated = true;
+        // Kill tasksh process when WebSocket closes
+        tasksh.kill();
+      }
     });
   });
   
