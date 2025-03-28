@@ -123,6 +123,25 @@ export default function TaskModal() {
     }
   });
   
+  // State to track the new comment being added
+  const [newComment, setNewComment] = useState("");
+  
+  // Keep existing annotations and add a new comment if provided
+  const processAnnotations = (existingAnnotations: string | null | undefined, newComment: string) => {
+    // Skip if no new comment
+    if (!newComment.trim()) {
+      return existingAnnotations || null;
+    }
+    
+    // If there's already content, add the new comment at the beginning (preserving newest-first order)
+    if (existingAnnotations) {
+      return `${newComment.trim()}\n${existingAnnotations}`;
+    }
+    
+    // Just the new comment
+    return newComment.trim();
+  };
+  
   // Handle form submission
   const onSubmit = (data: z.infer<typeof taskFormSchema>) => {
     // Process tags
@@ -137,9 +156,12 @@ export default function TaskModal() {
     // Process due date (convert from string to Date or null)
     const due = data.due ? new Date(data.due) : null;
     
+    // Get the newComment from our state and append it to existing annotations if needed
+    const annotations = processAnnotations(data.annotations, newComment);
+    
     const taskData = {
       description: data.description,
-      annotations: data.annotations || null,
+      annotations,
       project: data.project || null,
       priority,
       tags: tagsArray.length > 0 ? tagsArray : null,
@@ -152,6 +174,9 @@ export default function TaskModal() {
     } else {
       createTaskMutation.mutate(taskData);
     }
+    
+    // Reset new comment
+    setNewComment("");
   };
   
   // Listen for add task event
@@ -168,6 +193,7 @@ export default function TaskModal() {
       });
       setIsEdit(false);
       setCurrentTaskId(null);
+      setNewComment(""); // Reset new comment field
       setOpen(true);
     };
     
@@ -207,6 +233,7 @@ export default function TaskModal() {
       
       setIsEdit(true);
       setCurrentTaskId(task.id);
+      setNewComment(""); // Reset new comment field
       setOpen(true);
     };
     
@@ -217,9 +244,17 @@ export default function TaskModal() {
     };
   }, [form]);
   
+  // Parse annotations to display as separate comments in reverse order (newest first)
+  const displayAnnotations = (annotations: string | null | undefined) => {
+    if (!annotations) return [];
+    
+    // Split by newlines and reverse order
+    return annotations.split('\n').filter(Boolean).reverse();
+  };
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Task" : "Add New Task"}</DialogTitle>
           <DialogDescription>
@@ -245,23 +280,59 @@ export default function TaskModal() {
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="annotations"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Details (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Add additional details..." 
-                      className="resize-none" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Annotations - shown as comments */}
+            <div className="space-y-3">
+              {/* Existing comments field - hidden, only for storage */}
+              <FormField
+                control={form.control}
+                name="annotations"
+                render={({ field }) => (
+                  <input type="hidden" {...field} />
+                )}
+              />
+              
+              {/* Comments section */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-medium">
+                    {displayAnnotations(form.getValues().annotations).length > 0
+                      ? `Comments (${displayAnnotations(form.getValues().annotations).length})` 
+                      : "Comments"}
+                  </h3>
+                </div>
+                
+                {/* Existing comments display */}
+                {displayAnnotations(form.getValues().annotations).length > 0 && (
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto p-2 border rounded-md bg-gray-50">
+                    {displayAnnotations(form.getValues().annotations).map((comment, idx) => (
+                      <div 
+                        key={idx} 
+                        className="p-2 bg-white rounded border shadow-sm"
+                      >
+                        <div className="text-sm text-gray-700">{comment}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* New comment input */}
+                <div>
+                  <label htmlFor="new-comment" className="block text-sm font-medium text-gray-700 mb-1">
+                    Add Comment
+                  </label>
+                  <Textarea 
+                    id="new-comment"
+                    placeholder="Type a new comment..." 
+                    className="resize-none w-full" 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    New comments will be added to the top of the list
+                  </p>
+                </div>
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -364,7 +435,10 @@ export default function TaskModal() {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  setNewComment("");
+                }}
               >
                 Cancel
               </Button>
