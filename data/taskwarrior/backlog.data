@@ -6,3 +6,5 @@
 {"description":"Buy groceries","due":"20250329T000000Z","end":"20250328T064309Z","entry":"20250328T064156Z","modified":"20250328T064309Z","priority":"H","status":"completed","uuid":"403c20ef-00ae-4b3a-89e8-e33dcfde0306"}
 {"description":"Buy groceries","due":"20250328T000000Z","end":"20250328T064309Z","entry":"20250328T064156Z","modified":"20250328T064341Z","priority":"H","status":"completed","uuid":"403c20ef-00ae-4b3a-89e8-e33dcfde0306"}
 {"description":"Buy groceries","due":"20250328T000000Z","end":"20250328T064309Z","entry":"20250328T064156Z","modified":"20250328T064503Z","priority":"H","project":"Home","status":"completed","uuid":"403c20ef-00ae-4b3a-89e8-e33dcfde0306"}
+{"description":"Build website homepage","entry":"20250328T065732Z","modified":"20250328T065732Z","priority":"H","project":"Website","status":"pending","uuid":"d2782470-37d3-4aa0-a2fd-28538151fd55"}
+{"description":"Create user documentation","entry":"20250328T065736Z","modified":"20250328T065736Z","project":"Website","status":"pending","uuid":"cb0e0eb3-319b-4605-b72c-a10a534303c6","tags":["documentation","important"]}
