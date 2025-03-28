@@ -16,7 +16,6 @@ TaskMaster is a modern task management web application that integrates with Task
 
 - **Frontend**: React, TypeScript, Tailwind CSS, shadcn/ui components
 - **Backend**: Node.js, Express, Drizzle ORM
-- **Database**: PostgreSQL
 - **AI Integration**: OpenAI API
 - **Task Management**: Taskwarrior
 
@@ -26,9 +25,8 @@ Before you install TaskMaster, make sure you have:
 
 1. Node.js (v18 or newer)
 2. npm or yarn
-3. PostgreSQL
-4. Taskwarrior installed on your system
-5. OpenAI API key (for AI assistant features)
+3. Taskwarrior installed on your system
+4. OpenAI API key (for AI assistant features)
 
 ## Installation
 
@@ -50,28 +48,12 @@ npm install
 Create a `.env` file in the root directory with the following variables:
 
 ```
-# Database
-DATABASE_URL=postgresql://username:password@localhost:5432/taskmaster
-
 # OpenAI API key (needed for AI assistant)
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-### 4. Set up the database
 
-Create a new PostgreSQL database:
-
-```bash
-createdb taskmaster
-```
-
-Then, push the schema to the database:
-
-```bash
-npm run db:push
-```
-
-### 5. Configure Taskwarrior
+### 4. Configure Taskwarrior
 
 Make sure Taskwarrior is properly installed on your system. The application will use a separate configuration stored in the project's `data/taskwarrior` directory.
 
@@ -135,7 +117,6 @@ You can extend TaskMaster by:
 
 ### Common Issues
 
-- **Database Connection Issues**: Verify your PostgreSQL service is running and the connection string is correct
 - **OpenAI API Errors**: Check your API key is valid and has not expired
 - **Taskwarrior Not Found**: Ensure Taskwarrior is properly installed and available in your system's PATH
 

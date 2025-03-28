@@ -13,3 +13,5 @@
 {"description":"call fridge service to fix ice maker","entry":"20250328T085141Z","modified":"20250328T085141Z","project":"Home.kitchen","status":"pending","uuid":"11ff2b28-3c31-4273-aff8-396953b76c71"}
 {"description":"Fix cutlery","entry":"20250328T070131Z","modified":"20250328T085221Z","project":"Home.kitchen","status":"pending","uuid":"66f925f3-54e2-442a-bee9-86d1b0d5309d","depends":["11ff2b28-3c31-4273-aff8-396953b76c71"]}
 {"description":"call fridge service to fix ice maker","entry":"20250328T085141Z","modified":"20250328T085356Z","priority":"H","project":"Home.kitchen","status":"pending","uuid":"11ff2b28-3c31-4273-aff8-396953b76c71"}
+{"description":"Build cabinet 1","entry":"20250328T101123Z","modified":"20250328T101123Z","project":"Home","status":"pending","uuid":"fd63c37e-ff13-4a70-a768-8564452b7ed1"}
+{"description":"Build cabinet 1","end":"20250328T101144Z","entry":"20250328T101123Z","modified":"20250328T101144Z","project":"Home","status":"deleted","uuid":"fd63c37e-ff13-4a70-a768-8564452b7ed1"}
