@@ -288,21 +288,61 @@ export default function TaskItem({ task }: TaskItemProps) {
                 
                 {dependenciesOpen && (
                   <div className="p-2">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {dependentTasks.map((depTask) => (
                         <div 
-                          key={depTask.id} 
-                          className="text-sm flex items-center p-1.5 bg-gray-50 rounded border border-gray-200"
+                          key={depTask.id}
+                          className="embedded-task p-2 border rounded shadow-sm"
                         >
-                          <span className="text-xs bg-gray-200 px-1 rounded mr-2 text-gray-700">{depTask.id.substring(0, 8)}</span>
-                          <span className={cn(
-                            "truncate flex-grow",
-                            depTask.status === "completed" && "line-through text-gray-500"
-                          )}>
-                            {depTask.description}
-                          </span>
-                          {depTask.status === "completed" && (
-                            <span className="ml-1 text-green-600 text-xs">✓</span>
+                          <div className="flex items-start">
+                            <div className="flex items-center">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full mr-2",
+                                depTask.status === "completed" ? "bg-green-500" : 
+                                depTask.priority === "H" ? "bg-red-500" : 
+                                depTask.priority === "M" ? "bg-amber-500" : 
+                                depTask.priority === "L" ? "bg-blue-500" : "bg-gray-300"
+                              )}></div>
+                              <span className="text-xs bg-gray-200 px-1 rounded mr-2 text-gray-700">{depTask.id.substring(0, 8)}</span>
+                            </div>
+                            <span className={cn(
+                              "text-sm font-medium flex-grow",
+                              depTask.status === "completed" && "line-through text-gray-500"
+                            )}>
+                              {depTask.description}
+                            </span>
+                            {depTask.status === "completed" && (
+                              <span className="ml-1 text-green-600 text-xs">✓</span>
+                            )}
+                          </div>
+                          
+                          {/* Mini version of badges */}
+                          {(depTask.priority || depTask.project || depTask.due || depTask.tagsList?.length > 0) && (
+                            <div className="flex flex-wrap gap-1 mt-1 ml-4">
+                              {depTask.priority && (
+                                <span className="text-xs px-1 py-0.5 rounded bg-gray-100 text-gray-600">
+                                  {depTask.priority === "H" ? "High" : depTask.priority === "M" ? "Med" : "Low"}
+                                </span>
+                              )}
+                              
+                              {depTask.project && (
+                                <span className="text-xs px-1 py-0.5 rounded bg-gray-100 text-gray-600">
+                                  {depTask.project}
+                                </span>
+                              )}
+                              
+                              {depTask.due && (
+                                <span className="text-xs px-1 py-0.5 rounded bg-gray-100 text-gray-600">
+                                  {formatDueDate(depTask.due)}
+                                </span>
+                              )}
+                              
+                              {depTask.tagsList && depTask.tagsList.length > 0 && (
+                                <span className="text-xs px-1 py-0.5 rounded bg-gray-100 text-gray-600">
+                                  {depTask.tagsList.join(', ')}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       ))}
