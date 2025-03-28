@@ -116,3 +116,7 @@ time 1743164919
 old [annotation_1743161667:"it is .50" annotation_1743161695:"it is .50" description:"Buy milk" entry:"1743114827" modified:"1743161695" status:"pending" uuid:"ce5b5648-96bb-4108-afcf-9e68dbf005da"]
 new [annotation_1743161667:"it is .50" annotation_1743161695:"it is .50" description:"Buy milk" end:"1743164919" entry:"1743114827" modified:"1743164919" status:"completed" uuid:"ce5b5648-96bb-4108-afcf-9e68dbf005da"]
 ---
+time 1743165051
+old [description:"Task2" entry:"1743110820" modified:"1743110820" status:"pending" uuid:"25afcfbe-64f1-42a0-859a-25d3e10ffce8"]
+new [description:"Task2" end:"1743165051" entry:"1743110820" modified:"1743165051" status:"deleted" uuid:"25afcfbe-64f1-42a0-859a-25d3e10ffce8"]
+---
