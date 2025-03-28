@@ -102,10 +102,7 @@ export class TaskwarriorService {
       components.push(tagStr);
     }
     
-    // Add annotations if present
-    if (task.annotations) {
-      components.push(`annotation:"${task.annotations}"`);
-    }
+    // Annotations will be added later via separate commands
     
     // Add dependencies if present
     if (task.depends && Array.isArray(task.depends) && task.depends.length > 0) {
@@ -203,6 +200,18 @@ export class TaskwarriorService {
       const idMatch = output.match(/Created task (\d+)/);
       if (idMatch && idMatch[1]) {
         const taskId = idMatch[1];
+        
+        // If there are annotations, add them as separate commands
+        if (task.annotations) {
+          const annotations = task.annotations.split("\n").filter(Boolean);
+          
+          for (const annotation of annotations) {
+            const annotationCmd = `${this.baseCommand} ${taskId} annotate "${annotation}"`;
+            await this.executeCommand(annotationCmd);
+            // Small delay between annotation commands
+            await this.delay(100);
+          }
+        }
         
         // Implement retry logic with delay
         let retries = 5;
@@ -323,10 +332,7 @@ export class TaskwarriorService {
       }
     }
     
-    // Handle annotations
-    if (updates.annotations) {
-      components.push(`annotation:"${updates.annotations}"`);
-    }
+    // Annotations will be handled separately
     
     // Handle dependencies
     if (updates.depends !== undefined) {
@@ -343,6 +349,27 @@ export class TaskwarriorService {
     
     try {
       await this.executeCommand(command);
+      
+      // If there are annotations, add them as separate commands
+      if (updates.annotations) {
+        // Get current annotations to see if any new ones were added
+        const existingTask = await this.getTask(id);
+        const existingAnnotations = existingTask?.annotations?.split('\n').filter(Boolean) || [];
+        const newAnnotations = updates.annotations.split('\n').filter(Boolean);
+        
+        // Find annotations that are in new but not in existing
+        const annotationsToAdd = newAnnotations.filter(
+          newAnnotation => !existingAnnotations.includes(newAnnotation)
+        );
+        
+        // Add new annotations
+        for (const annotation of annotationsToAdd) {
+          const annotationCmd = `${this.baseCommand} uuid:${id} annotate "${annotation}"`;
+          await this.executeCommand(annotationCmd);
+          // Small delay between annotation commands
+          await this.delay(100);
+        }
+      }
       
       // Implement retry logic with delay for fetching the updated task
       let retries = 5;

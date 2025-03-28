@@ -276,7 +276,20 @@ export default function TaskModal() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="What needs to be done?" {...field} />
+                    <Input 
+                      placeholder="What needs to be done?" 
+                      {...field} 
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && isEdit && currentTaskId) {
+                          e.preventDefault();
+                          // Update only the description field
+                          updateTaskMutation.mutate({ 
+                            id: currentTaskId, 
+                            taskData: { description: field.value } 
+                          });
+                        }
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -318,18 +331,54 @@ export default function TaskModal() {
                   </div>
                 )}
                 
-                {/* New comment input */}
+                {/* New comment input with dedicated submit button */}
                 <div>
                   <label htmlFor="new-comment" className="block text-sm font-medium text-gray-700 mb-1">
                     Add Comment
                   </label>
-                  <Textarea 
-                    id="new-comment"
-                    placeholder="Type a new comment..." 
-                    className="resize-none w-full" 
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Textarea 
+                      id="new-comment"
+                      placeholder="Type a new comment..." 
+                      className="resize-none w-full" 
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Allow for submitting with Ctrl+Enter or Cmd+Enter
+                        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && newComment.trim()) {
+                          e.preventDefault();
+                          // Add the comment and update the task
+                          const updatedAnnotations = processAnnotations(form.getValues().annotations, newComment);
+                          if (isEdit && currentTaskId) {
+                            updateTaskMutation.mutate({ 
+                              id: currentTaskId, 
+                              taskData: { annotations: updatedAnnotations } 
+                            });
+                            // Reset the comment field
+                            setNewComment("");
+                          }
+                        }
+                      }}
+                    />
+                    <Button 
+                      type="button" 
+                      disabled={!newComment.trim() || updateTaskMutation.isPending}
+                      onClick={() => {
+                        if (!newComment.trim() || !isEdit || !currentTaskId) return;
+                        
+                        // Add the comment and update the task
+                        const updatedAnnotations = processAnnotations(form.getValues().annotations, newComment);
+                        updateTaskMutation.mutate({ 
+                          id: currentTaskId, 
+                          taskData: { annotations: updatedAnnotations } 
+                        });
+                        // Reset the comment field
+                        setNewComment("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
                     New comments will be added to the top of the list
                   </p>
@@ -345,7 +394,20 @@ export default function TaskModal() {
                   <FormItem>
                     <FormLabel>Project</FormLabel>
                     <FormControl>
-                      <Input placeholder="Project name" {...field} />
+                      <Input 
+                        placeholder="Project name" 
+                        {...field} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && isEdit && currentTaskId) {
+                            e.preventDefault();
+                            // Update only the project field
+                            updateTaskMutation.mutate({ 
+                              id: currentTaskId, 
+                              taskData: { project: field.value } 
+                            });
+                          }
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -359,7 +421,17 @@ export default function TaskModal() {
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
                     <Select 
-                      onValueChange={field.onChange} 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        // Auto-update when priority changes
+                        if (isEdit && currentTaskId) {
+                          const priority = value === "none" ? "" : value;
+                          updateTaskMutation.mutate({ 
+                            id: currentTaskId, 
+                            taskData: { priority }
+                          });
+                        }
+                      }}
                       defaultValue={field.value}
                       value={field.value}
                     >
@@ -389,7 +461,30 @@ export default function TaskModal() {
                   <FormItem>
                     <FormLabel>Due Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input 
+                        type="date" 
+                        {...field} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && isEdit && currentTaskId) {
+                            e.preventDefault();
+                            // Update only the due date field
+                            updateTaskMutation.mutate({ 
+                              id: currentTaskId, 
+                              taskData: { due: field.value ? new Date(field.value) : null } 
+                            });
+                          }
+                        }}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Auto-update on change for date fields
+                          if (isEdit && currentTaskId) {
+                            updateTaskMutation.mutate({ 
+                              id: currentTaskId, 
+                              taskData: { due: e.target.value ? new Date(e.target.value) : null } 
+                            });
+                          }
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -406,6 +501,18 @@ export default function TaskModal() {
                       <Input 
                         placeholder="e.g. urgent, meeting, next" 
                         {...field} 
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && isEdit && currentTaskId) {
+                            e.preventDefault();
+                            // Process tags into array
+                            const tagsArray = field.value ? field.value.split(',').map(t => t.trim()).filter(Boolean) : [];
+                            // Update only the tags field
+                            updateTaskMutation.mutate({ 
+                              id: currentTaskId, 
+                              taskData: { tags: tagsArray.length > 0 ? tagsArray : null } 
+                            });
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -424,6 +531,18 @@ export default function TaskModal() {
                     <Input 
                       placeholder="e.g. 123abc, 456def" 
                       {...field} 
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && isEdit && currentTaskId) {
+                          e.preventDefault();
+                          // Process dependencies into array
+                          const dependsArray = field.value ? field.value.split(',').map(d => d.trim()).filter(Boolean) : [];
+                          // Update only the depends field
+                          updateTaskMutation.mutate({ 
+                            id: currentTaskId, 
+                            taskData: { depends: dependsArray.length > 0 ? dependsArray : null } 
+                          });
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
