@@ -125,9 +125,21 @@ Always respond in a friendly, helpful manner. After executing a command, explain
       // Get tasks from Taskwarrior to provide context
       const tasks = await this.taskwarrior.getTasks();
       const taskContext = `Current tasks (${tasks.length} total):\n` + 
-        tasks.slice(0, 10).map((t: any) => 
-          `- ${t.description} (${t.status}, ${t.project || 'No project'}, ${t.priority || 'No priority'}, ${t.due ? 'Due: ' + t.due.toISOString().split('T')[0] : 'No due date'})`
-        ).join('\n');
+        tasks.slice(0, 10).map((t: any) => {
+          // Safely format date or provide fallback
+          let dueInfo = 'No due date';
+          if (t.due) {
+            try {
+              // Make sure due is a valid date object
+              const dueDate = t.due instanceof Date ? t.due : new Date(t.due);
+              dueInfo = 'Due: ' + dueDate.toISOString().split('T')[0];
+            } catch (e) {
+              console.warn('Invalid date format for task:', t.id);
+              dueInfo = 'Due date format error';
+            }
+          }
+          return `- ${t.description} (${t.status}, ${t.project || 'No project'}, ${t.priority || 'No priority'}, ${dueInfo})`;
+        }).join('\n');
       
       // Add task context as a system message
       formattedMessages.push({ 
