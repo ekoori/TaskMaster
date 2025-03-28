@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { TaskWithMetadata } from "@shared/schema";
 import { format } from "date-fns";
 
 import {
@@ -259,7 +260,7 @@ export default function TaskModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Task" : "Add New Task"}{isEdit && currentTaskId && <span className="ml-2 text-sm text-gray-500">ID: {currentTaskId}</span>}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Task" : "Add New Task"}{isEdit && currentTaskId && <span className="ml-2 text-sm text-gray-500">ID: {currentTaskId.substring(0, 8)}</span>}</DialogTitle>
           <DialogDescription>
             {isEdit 
               ? "Update the details of your task." 
@@ -708,12 +709,14 @@ export default function TaskModal() {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
-              >
-                {isEdit ? "Update Task" : "Save Task"}
-              </Button>
+              {!isEdit && (
+                <Button 
+                  type="submit" 
+                  disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
+                >
+                  Save Task
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>
