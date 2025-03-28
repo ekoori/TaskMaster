@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TaskItem from "./TaskItem";
 import { MainLayoutContext } from "../layout/MainLayout";
-import { TaskFilter } from "@shared/schema";
+import { TaskFilter, TaskWithMetadata } from "@shared/schema";
 
 export default function TaskList() {
   const { currentFilter } = useContext(MainLayoutContext);
@@ -36,14 +36,16 @@ export default function TaskList() {
     setQueryFilter(filterParts.join(" "));
   }, [currentFilter]);
 
-  // Fetch tasks
-  const { data: tasks = [], isLoading, isError } = useQuery({
+  // Fetch tasks with more frequent updates and query invalidation
+  const { data: tasks = [] as TaskWithMetadata[], isLoading, isError } = useQuery<TaskWithMetadata[]>({
     queryKey: ['/api/tasks', queryFilter],
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 3000, // Refetch more frequently (every 3 seconds)
+    refetchOnWindowFocus: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
 
   // Filter tasks by search text
-  const filteredTasks = tasks.filter((task: any) => {
+  const filteredTasks = tasks.filter((task: TaskWithMetadata) => {
     if (searchText === "") return true;
     
     return (
@@ -53,12 +55,14 @@ export default function TaskList() {
   });
 
   // Sort tasks
-  const sortedTasks = [...filteredTasks].sort((a: any, b: any) => {
+  const sortedTasks = [...filteredTasks].sort((a: TaskWithMetadata, b: TaskWithMetadata) => {
     switch (sortBy) {
       case "priority":
         // Priority order: H > M > L > null
         const priorityOrder: Record<string, number> = { H: 3, M: 2, L: 1 };
-        return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        const bPriority = b.priority as string | undefined;
+        const aPriority = a.priority as string | undefined;
+        return (priorityOrder[bPriority || ''] || 0) - (priorityOrder[aPriority || ''] || 0);
         
       case "dueDate":
         // Sort by due date (null values at the end)
@@ -152,7 +156,7 @@ export default function TaskList() {
 
       {/* Task Cards */}
       <div className="space-y-4">
-        {sortedTasks.map((task: any) => (
+        {sortedTasks.map((task: TaskWithMetadata) => (
           <TaskItem key={task.id} task={task} />
         ))}
       </div>

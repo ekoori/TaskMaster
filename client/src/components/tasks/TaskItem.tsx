@@ -6,9 +6,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { TaskWithMetadata } from "@shared/schema";
 
 // Priority color mapping
-const priorityColors = {
+const priorityColors: Record<string, string> = {
   H: "border-red-500",
   M: "border-amber-500",
   L: "border-blue-500",
@@ -17,10 +18,10 @@ const priorityColors = {
 };
 
 // Format relative due date
-const formatDueDate = (dueDate: string) => {
+const formatDueDate = (dueDate: string | Date) => {
   if (!dueDate) return null;
   
-  const date = new Date(dueDate);
+  const date = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
   
   if (isToday(date)) {
     return "Due today";
@@ -38,7 +39,7 @@ const formatDueDate = (dueDate: string) => {
 };
 
 interface TaskItemProps {
-  task: any;
+  task: TaskWithMetadata;
 }
 
 export default function TaskItem({ task }: TaskItemProps) {
@@ -110,7 +111,10 @@ export default function TaskItem({ task }: TaskItemProps) {
     if (task.status === "completed") {
       return priorityColors.completed;
     }
-    return priorityColors[task.priority || ""];
+    
+    const priority = task.priority as string | undefined;
+    // Use type assertion to handle the string index
+    return priorityColors[priority || ""];
   };
   
   return (

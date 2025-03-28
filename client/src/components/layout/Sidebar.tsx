@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Folder, ClipboardList, CheckCircle, Clock, List, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MainLayoutContext } from "./MainLayout";
@@ -7,32 +7,83 @@ import { TaskFilter } from "@shared/schema";
 
 export default function Sidebar() {
   const { sidebarVisible, setCurrentFilter, currentFilter } = useContext(MainLayoutContext);
+  const queryClient = useQueryClient();
   
-  // Fetch reports
-  const { data: reports = [] } = useQuery({
+  // Define interface for report, project, and tag items
+  interface ReportItem {
+    id: number;
+    name: string;
+    filter: string;
+    description?: string;
+  }
+  
+  interface ProjectItem {
+    id: number;
+    name: string;
+  }
+  
+  interface TagItem {
+    id: number;
+    name: string;
+  }
+  
+  // Fetch reports with refetch on window focus
+  const { data: reports = [] } = useQuery<ReportItem[]>({
     queryKey: ['/api/reports'],
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
   
-  // Fetch projects
-  const { data: projects = [] } = useQuery({
+  // Fetch projects with refetch on window focus
+  const { data: projects = [] } = useQuery<ProjectItem[]>({
     queryKey: ['/api/projects'],
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
   
-  // Fetch tags
-  const { data: tags = [] } = useQuery({
+  // Fetch tags with refetch on window focus
+  const { data: tags = [] } = useQuery<TagItem[]>({
     queryKey: ['/api/tags'],
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
   
   const handleReportClick = (filter: string, reportName: string) => {
-    setCurrentFilter({ report: reportName, ...JSON.parse(filter) });
+    // Don't parse filter as JSON, handle it as a string
+    try {
+      // Clear any existing filters first
+      const newFilter: TaskFilter = { report: reportName };
+      
+      // Parse status filter if present
+      if (filter.includes('status:pending')) {
+        newFilter.status = 'pending';
+      } else if (filter.includes('status:completed')) {
+        newFilter.status = 'completed';
+      }
+      
+      setCurrentFilter(newFilter);
+      
+      // Invalidate tasks query to force refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+    } catch (error) {
+      console.error("Error setting report filter:", error);
+    }
   };
   
   const handleProjectClick = (project: string) => {
-    setCurrentFilter({ ...currentFilter, project });
+    // Reset current filter and set only project
+    setCurrentFilter({ project });
+    
+    // Invalidate tasks query to force refresh
+    queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
   };
   
   const handleTagClick = (tag: string) => {
-    setCurrentFilter({ ...currentFilter, tag });
+    // Reset current filter and set only tag
+    setCurrentFilter({ tag });
+    
+    // Invalidate tasks query to force refresh
+    queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
   };
   
   // Map the lucide icons to report names
@@ -60,7 +111,7 @@ export default function Sidebar() {
       <div className="mb-6">
         <h2 className="text-lg font-medium text-neutral-900 mb-3">Reports</h2>
         <ul>
-          {reports.map((report: any) => (
+          {reports.map((report: ReportItem) => (
             <li key={report.id} className="mb-2">
               <a 
                 href="#" 
@@ -84,7 +135,7 @@ export default function Sidebar() {
       <div className="mb-6">
         <h2 className="text-lg font-medium text-neutral-900 mb-3">Projects</h2>
         <ul>
-          {projects.map((project: any) => (
+          {projects.map((project: ProjectItem) => (
             <li key={project.id} className="mb-2">
               <a 
                 href="#" 
@@ -108,7 +159,7 @@ export default function Sidebar() {
       <div>
         <h2 className="text-lg font-medium text-neutral-900 mb-3">Tags</h2>
         <div className="flex flex-wrap gap-2">
-          {tags.map((tag: any) => (
+          {tags.map((tag: TagItem) => (
             <a 
               key={tag.id}
               href="#" 

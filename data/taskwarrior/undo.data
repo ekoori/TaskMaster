@@ -7,3 +7,22 @@ new [description:"Buy milk" entry:"1743114827" modified:"1743114827" status:"pen
 time 1743116121
 new [description:"buy books" due:"1743033600" entry:"1743116121" modified:"1743116121" status:"pending" uuid:"7c245924-796b-413c-836c-e06738964e8b"]
 ---
+time 1743144116
+new [description:"Buy groceries" due:"1743206400" entry:"1743144116" modified:"1743144116" status:"pending" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+---
+time 1743144173
+old [description:"Buy groceries" due:"1743206400" entry:"1743144116" modified:"1743144116" status:"pending" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+new [description:"Buy groceries" due:"1743206400" entry:"1743144116" modified:"1743144173" priority:"H" status:"pending" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+---
+time 1743144189
+old [description:"Buy groceries" due:"1743206400" entry:"1743144116" modified:"1743144173" priority:"H" status:"pending" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+new [description:"Buy groceries" due:"1743206400" end:"1743144189" entry:"1743144116" modified:"1743144189" priority:"H" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+---
+time 1743144221
+old [description:"Buy groceries" due:"1743206400" end:"1743144189" entry:"1743144116" modified:"1743144189" priority:"H" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+new [description:"Buy groceries" due:"1743120000" end:"1743144189" entry:"1743144116" modified:"1743144221" priority:"H" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+---
+time 1743144303
+old [description:"Buy groceries" due:"1743120000" end:"1743144189" entry:"1743144116" modified:"1743144221" priority:"H" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+new [description:"Buy groceries" due:"1743120000" end:"1743144189" entry:"1743144116" modified:"1743144303" priority:"H" project:"Home" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+---
