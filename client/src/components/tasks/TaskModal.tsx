@@ -156,18 +156,21 @@ export default function TaskModal() {
     // Process due date (convert from string to Date or null)
     const due = data.due ? new Date(data.due) : null;
     
-    // Get the newComment from our state and append it to existing annotations if needed
-    const annotations = processAnnotations(data.annotations, newComment);
-    
-    const taskData = {
+    // Create partial task data for updates
+    let taskData: any = {
       description: data.description,
-      annotations,
       project: data.project || null,
       priority,
       tags: tagsArray.length > 0 ? tagsArray : null,
       due,
       depends: dependsArray.length > 0 ? dependsArray : null,
     };
+    
+    // Only add annotations if we're adding a new comment or already have annotations
+    if (newComment.trim() || data.annotations) {
+      // Get the newComment from our state and append it to existing annotations if needed
+      taskData.annotations = processAnnotations(data.annotations, newComment);
+    }
     
     if (isEdit && currentTaskId) {
       updateTaskMutation.mutate({ id: currentTaskId, taskData });

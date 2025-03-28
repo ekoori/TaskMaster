@@ -15,3 +15,5 @@
 {"description":"call fridge service to fix ice maker","entry":"20250328T085141Z","modified":"20250328T085356Z","priority":"H","project":"Home.kitchen","status":"pending","uuid":"11ff2b28-3c31-4273-aff8-396953b76c71"}
 {"description":"Build cabinet 1","entry":"20250328T101123Z","modified":"20250328T101123Z","project":"Home","status":"pending","uuid":"fd63c37e-ff13-4a70-a768-8564452b7ed1"}
 {"description":"Build cabinet 1","end":"20250328T101144Z","entry":"20250328T101123Z","modified":"20250328T101144Z","project":"Home","status":"deleted","uuid":"fd63c37e-ff13-4a70-a768-8564452b7ed1"}
+{"description":"annotation:yeah, that's about it","entry":"20250328T065732Z","modified":"20250328T103916Z","priority":"H","project":"Website","status":"pending","uuid":"d2782470-37d3-4aa0-a2fd-28538151fd55"}
+{"description":"annotation:hahaha","entry":"20250328T065732Z","modified":"20250328T104025Z","priority":"H","project":"Website","status":"pending","uuid":"d2782470-37d3-4aa0-a2fd-28538151fd55"}

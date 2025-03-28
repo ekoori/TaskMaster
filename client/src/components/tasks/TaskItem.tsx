@@ -144,15 +144,21 @@ export default function TaskItem({ task }: TaskItemProps) {
             </h3>
           </div>
           <div className="ml-8">
+            {/* Display annotations as comments */}
             {task.annotations && (
-              <p 
-                className={cn(
-                  "text-sm text-gray-700 mb-2",
-                  task.status === "completed" && "line-through text-gray-500"
-                )}
-              >
-                {task.annotations}
-              </p>
+              <div className="mb-3">
+                {task.annotations.split('\n').filter(Boolean).map((comment, idx) => (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "text-sm text-gray-700 mb-1 p-1.5 border-l-2 border-gray-300 pl-2",
+                      task.status === "completed" && "text-gray-500"
+                    )}
+                  >
+                    {comment}
+                  </div>
+                ))}
+              </div>
             )}
             <div className="flex flex-wrap gap-2">
               {/* Priority Badge */}
