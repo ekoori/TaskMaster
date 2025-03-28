@@ -126,10 +126,25 @@ export default function TaskItem({ task }: TaskItemProps) {
   
   // Find dependent tasks
   const getDependentTasks = () => {
-    if (!task.depends || task.depends.length === 0) return [];
-    return task.depends
-      .map(depId => allTasks.find(t => t.id === depId))
+    console.log("Task with depends:", task.description, task.depends);
+    
+    if (!task.depends || task.depends.length === 0) {
+      console.log("No dependencies for task:", task.description);
+      return [];
+    }
+    
+    const foundTasks = task.depends
+      .map(depId => {
+        const foundTask = allTasks.find(t => t.id === depId);
+        if (!foundTask) {
+          console.log("Could not find dependency with ID:", depId);
+        }
+        return foundTask;
+      })
       .filter(Boolean) as TaskWithMetadata[];
+    
+    console.log("Found dependent tasks:", foundTasks.length, foundTasks.map(t => t.description));
+    return foundTasks;
   };
   
   // Get dependent tasks
