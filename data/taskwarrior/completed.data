@@ -1,2 +1,2 @@
 [description:"Build cabinet 1" end:"1743156704" entry:"1743156683" modified:"1743156704" project:"Home" status:"deleted" uuid:"fd63c37e-ff13-4a70-a768-8564452b7ed1"]
-[description:"Buy groceries" due:"1743120000" end:"1743144189" entry:"1743144116" modified:"1743144303" priority:"H" project:"Home" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
+[dep_ce5b5648-96bb-4108-afcf-9e68dbf005da:"x" depends:"ce5b5648-96bb-4108-afcf-9e68dbf005da" description:"Buy groceries" due:"1743120000" end:"1743144189" entry:"1743144116" modified:"1743161837" priority:"H" project:"Home" status:"completed" uuid:"403c20ef-00ae-4b3a-89e8-e33dcfde0306"]
