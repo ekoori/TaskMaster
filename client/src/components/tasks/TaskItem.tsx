@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
@@ -124,9 +124,19 @@ export default function TaskItem({ task }: TaskItemProps) {
     return priorityColors[priority || ""];
   };
   
+  // Use react-query directly to ensure we have the latest data
+  const { data: allTasksData = [] } = useQuery({ 
+    queryKey: ['/api/tasks'], 
+    enabled: true,
+    staleTime: 0 // Always fetch fresh data
+  });
+  
   // Find dependent tasks
   const getDependentTasks = () => {
     console.log("Task with depends:", task.description, task.depends);
+    
+    // Use tasks from the query directly instead of queryClient.getQueryData
+    const currentAllTasks = allTasksData as TaskWithMetadata[];
     
     if (!task.depends || task.depends.length === 0) {
       console.log("No dependencies for task:", task.description);
@@ -135,7 +145,7 @@ export default function TaskItem({ task }: TaskItemProps) {
     
     const foundTasks = task.depends
       .map(depId => {
-        const foundTask = allTasks.find(t => t.id === depId);
+        const foundTask = currentAllTasks.find(t => t.id === depId);
         if (!foundTask) {
           console.log("Could not find dependency with ID:", depId);
         }

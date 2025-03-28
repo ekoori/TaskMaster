@@ -35,6 +35,34 @@ export class TaskwarriorService {
   
   // Convert Taskwarrior JSON to our Task schema
   private convertTaskwarriorTask(twTask: any): TaskWithMetadata {
+    // Log dependencies for debugging
+    if (twTask.depends) {
+      console.log("Raw dependencies from taskwarrior for task:", twTask.description, twTask.depends);
+      console.log("Type of depends:", typeof twTask.depends);
+    }
+    
+    // Process dependencies - Taskwarrior can return them in different formats
+    let dependsList: string[] = [];
+    
+    if (twTask.depends) {
+      if (typeof twTask.depends === 'string') {
+        // Single dependency as string
+        dependsList = [twTask.depends];
+      } else if (Array.isArray(twTask.depends)) {
+        // Array of dependencies
+        dependsList = twTask.depends;
+      } else {
+        // Object or other format - convert to string and log
+        console.log("Unknown depends format:", twTask.depends);
+        try {
+          const depsString = JSON.stringify(twTask.depends);
+          console.log("Stringified depends:", depsString);
+        } catch (err) {
+          console.log("Could not stringify depends");
+        }
+      }
+    }
+    
     // Map Taskwarrior fields to our schema
     const task: TaskWithMetadata = {
       id: twTask.uuid || `tw_${Date.now()}`,
@@ -55,12 +83,8 @@ export class TaskwarriorService {
       modified: twTask.modified ? new Date(twTask.modified) : new Date(),
       completed: twTask.end ? new Date(twTask.end) : null,
       urgency: twTask.urgency?.toString() || null,
-      // Handle dependencies
-      depends: twTask.depends 
-        ? (typeof twTask.depends === 'string' 
-          ? [twTask.depends] 
-          : (Array.isArray(twTask.depends) ? twTask.depends : [])) 
-        : [],
+      // Use our processed dependencies array
+      depends: dependsList,
     };
     
     return task;
