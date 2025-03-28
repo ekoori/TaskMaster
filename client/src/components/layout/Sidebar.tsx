@@ -1,6 +1,6 @@
-import { useContext } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Folder, ClipboardList, CheckCircle, Clock, List, Tag } from "lucide-react";
+import { Folder, ClipboardList, CheckCircle, Clock, List, Tag, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MainLayoutContext } from "./MainLayout";
 import { TaskFilter } from "@shared/schema";
@@ -8,6 +8,7 @@ import { TaskFilter } from "@shared/schema";
 export default function Sidebar() {
   const { sidebarVisible, setCurrentFilter, currentFilter } = useContext(MainLayoutContext);
   const queryClient = useQueryClient();
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   
   // Define interface for report, project, and tag items
   interface ReportItem {
@@ -115,6 +116,98 @@ export default function Sidebar() {
     }
   };
   
+  // Toggle project expansion
+  const toggleProjectExpand = (path: string) => {
+    setExpandedProjects((prev) => ({
+      ...prev,
+      [path]: !prev[path],
+    }));
+  };
+  
+  // Build hierarchical project tree
+  const renderProjectTree = (allProjects: ProjectItem[]) => {
+    // Build tree structure from flat list with dot notation
+    const projectTree: Record<string, any> = {};
+    
+    // Sort projects by name for consistent ordering
+    const sortedProjects = [...allProjects].sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+    
+    // First pass - build the tree structure
+    sortedProjects.forEach(project => {
+      const segments = project.name.split('.');
+      let currentLevel = projectTree;
+      
+      segments.forEach((segment, index) => {
+        if (!currentLevel[segment]) {
+          currentLevel[segment] = {
+            projects: {},
+            fullPath: segments.slice(0, index + 1).join('.'),
+            name: segment, 
+            id: project.id
+          };
+        }
+        
+        currentLevel = currentLevel[segment].projects;
+      });
+    });
+    
+    // Recursively render the project tree
+    const renderLevel = (nodes: Record<string, any>, level = 0, parentPath = '') => {
+      return (
+        <ul className={level > 0 ? "pl-4" : ""}>
+          {Object.keys(nodes).map((key) => {
+            const node = nodes[key];
+            const hasChildren = Object.keys(node.projects).length > 0;
+            const fullPath = node.fullPath;
+            const isExpanded = expandedProjects[fullPath] !== false; // Default to expanded
+            
+            return (
+              <li key={fullPath} className="mb-1">
+                <div className="flex items-center">
+                  {hasChildren && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleProjectExpand(fullPath);
+                      }}
+                      className="w-5 h-5 inline-flex items-center justify-center text-gray-500 mr-1"
+                    >
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                  )}
+                  {!hasChildren && <span className="w-5 h-5 mr-1"></span>}
+                  
+                  <a 
+                    href="#" 
+                    className={cn(
+                      "flex items-center py-1 px-2 rounded hover:bg-gray-100 text-gray-700 hover:text-primary transition-colors flex-grow",
+                      currentFilter.project === fullPath && "bg-gray-100 text-primary"
+                    )}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleProjectClick(fullPath);
+                    }}
+                  >
+                    <Folder className="mr-2 text-neutral-500" size={16} />
+                    <span>{node.name}</span>
+                  </a>
+                </div>
+                
+                {hasChildren && isExpanded && (
+                  renderLevel(node.projects, level + 1, fullPath)
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      );
+    };
+    
+    return renderLevel(projectTree);
+  };
+  
   if (!sidebarVisible) {
     return null;
   }
@@ -147,26 +240,7 @@ export default function Sidebar() {
       
       <div className="mb-6">
         <h2 className="text-lg font-medium text-neutral-900 mb-3">Projects</h2>
-        <ul>
-          {projects.map((project: ProjectItem) => (
-            <li key={project.id} className="mb-2">
-              <a 
-                href="#" 
-                className={cn(
-                  "flex items-center p-2 rounded hover:bg-gray-100 text-gray-700 hover:text-primary transition-colors",
-                  currentFilter.project === project.name && "bg-gray-100 text-primary"
-                )}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleProjectClick(project.name);
-                }}
-              >
-                <Folder className="mr-2 text-neutral-500" />
-                <span>{project.name}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
+        {renderProjectTree(projects)}
       </div>
       
       <div>

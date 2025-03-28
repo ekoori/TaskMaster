@@ -42,6 +42,7 @@ const taskFormSchema = z.object({
   priority: z.string().optional(),
   due: z.string().optional(),
   tags: z.string().optional(),
+  depends: z.string().optional(), // Comma-separated list of task IDs
 });
 
 export default function TaskModal() {
@@ -62,6 +63,7 @@ export default function TaskModal() {
       priority: "",
       due: "",
       tags: "",
+      depends: "",
     },
   });
   
@@ -126,6 +128,9 @@ export default function TaskModal() {
     // Process tags
     const tagsArray = data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
     
+    // Process dependencies
+    const dependsArray = data.depends ? data.depends.split(',').map(d => d.trim()).filter(Boolean) : [];
+    
     // Convert "none" priority to empty string or null
     const priority = data.priority === "none" ? "" : data.priority;
     
@@ -139,6 +144,7 @@ export default function TaskModal() {
       priority,
       tags: tagsArray.length > 0 ? tagsArray : null,
       due,
+      depends: dependsArray.length > 0 ? dependsArray : null,
     };
     
     if (isEdit && currentTaskId) {
@@ -158,6 +164,7 @@ export default function TaskModal() {
         priority: "none",
         due: "",
         tags: "",
+        depends: "",
       });
       setIsEdit(false);
       setCurrentTaskId(null);
@@ -195,6 +202,7 @@ export default function TaskModal() {
         priority: priorityValue,
         due: dueDate,
         tags: task.tagsList ? task.tagsList.join(", ") : "",
+        depends: task.depends ? task.depends.join(", ") : "",
       });
       
       setIsEdit(true);
@@ -331,6 +339,26 @@ export default function TaskModal() {
                 )}
               />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="depends"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dependencies (comma separated task IDs)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="e.g. 123abc, 456def" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-gray-500">
+                    Tasks that must be completed before this one
+                  </p>
+                </FormItem>
+              )}
+            />
             
             <DialogFooter>
               <Button 

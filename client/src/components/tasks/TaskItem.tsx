@@ -213,6 +213,19 @@ export default function TaskItem({ task }: TaskItemProps) {
                 </span>
               ))}
               
+              {/* Dependencies Badge */}
+              {task.depends && task.depends.length > 0 && (
+                <span className={cn(
+                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                  task.status === "completed" 
+                    ? "bg-gray-100 text-gray-800" 
+                    : "bg-blue-100 text-blue-800"
+                )}>
+                  <span className="mr-1 text-xs">🔗</span>
+                  {task.depends.length} {task.depends.length === 1 ? "Dependency" : "Dependencies"}
+                </span>
+              )}
+              
               {/* Completed Badge */}
               {task.status === "completed" && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">

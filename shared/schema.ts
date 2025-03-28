@@ -36,6 +36,7 @@ export const tasks = pgTable("tasks", {
   modified: timestamp("modified").notNull().defaultNow(),
   completed: timestamp("completed"),
   urgency: text("urgency"), // Computed by Taskwarrior
+  depends: text("depends").array(), // Array of task IDs this task depends on
 });
 
 export const insertTaskSchema = createInsertSchema(tasks)
@@ -58,6 +59,7 @@ export const insertTaskSchema = createInsertSchema(tasks)
     wait: z.date().nullable().optional(),
     scheduled: z.date().nullable().optional(),
     until: z.date().nullable().optional(),
+    depends: z.array(z.string()).nullable().optional(),
   });
 
 export type InsertTask = z.infer<typeof insertTaskSchema>;
@@ -110,6 +112,8 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 // Enhanced types for frontend
 export type TaskWithMetadata = Task & {
   tagsList: string[]; // Non-optional array for consistent rendering
+  depends?: string[]; // List of task IDs this task depends on
+  dependsOn?: TaskWithMetadata[]; // Populated tasks this task depends on 
 };
 
 export type TaskFilter = {

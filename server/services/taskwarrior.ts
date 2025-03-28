@@ -55,6 +55,12 @@ export class TaskwarriorService {
       modified: twTask.modified ? new Date(twTask.modified) : new Date(),
       completed: twTask.end ? new Date(twTask.end) : null,
       urgency: twTask.urgency?.toString() || null,
+      // Handle dependencies
+      depends: twTask.depends 
+        ? (typeof twTask.depends === 'string' 
+          ? [twTask.depends] 
+          : (Array.isArray(twTask.depends) ? twTask.depends : [])) 
+        : [],
     };
     
     return task;
@@ -99,6 +105,13 @@ export class TaskwarriorService {
     // Add annotations if present
     if (task.annotations) {
       components.push(`annotation:"${task.annotations}"`);
+    }
+    
+    // Add dependencies if present
+    if (task.depends && Array.isArray(task.depends) && task.depends.length > 0) {
+      // Join dependencies with comma
+      const dependsStr = task.depends.join(',');
+      components.push(`depends:${dependsStr}`);
     }
     
     return components.join(' ');
@@ -241,6 +254,7 @@ export class TaskwarriorService {
             modified: new Date(),
             completed: null,
             urgency: null,
+            depends: task.depends || [],
           };
         }
       }
@@ -314,6 +328,17 @@ export class TaskwarriorService {
       components.push(`annotation:"${updates.annotations}"`);
     }
     
+    // Handle dependencies
+    if (updates.depends !== undefined) {
+      if (Array.isArray(updates.depends) && updates.depends.length > 0) {
+        const dependsStr = updates.depends.join(',');
+        components.push(`depends:${dependsStr}`);
+      } else {
+        // Clear dependencies if empty array is provided
+        components.push(`depends:`);
+      }
+    }
+    
     const command = components.join(' ');
     
     try {
@@ -367,6 +392,7 @@ export class TaskwarriorService {
           modified: new Date(),
           completed: null,
           urgency: null,
+          depends: updates.depends || [],
         };
       }
       
