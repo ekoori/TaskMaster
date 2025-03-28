@@ -1,0 +1,7 @@
+{
+  "name": "taskwarrior-hooks",
+  "version": "1.0.0",
+  "description": "Taskwarrior hooks for task integration",
+  "type": "module",
+  "private": true
+}

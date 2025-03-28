@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const http = require('http');
+import http from 'http';
 
 // Function to send a refresh signal to our server
 function notifyServer() {
