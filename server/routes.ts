@@ -157,8 +157,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tasks API
   api.get("/tasks", async (req: Request, res: Response) => {
     try {
-      const filter = req.query.filter || "";
-      const tasks = await taskwarrior.getTasks(filter as string);
+      // Process the filter query parameters
+      let filterString = "";
+
+      // Specific filter for status
+      if (req.query.status) {
+        filterString += `status:${req.query.status} `;
+      }
+
+      // Specific filter for project
+      if (req.query.project) {
+        filterString += `project:${req.query.project} `;
+      }
+
+      // Specific filter for tag
+      if (req.query.tag) {
+        filterString += `+${req.query.tag} `;
+      }
+
+      // Specific filter for priority
+      if (req.query.priority) {
+        filterString += `priority:${req.query.priority} `;
+      }
+
+      // Specific filter for report
+      if (req.query.report === "Pending") {
+        filterString += "status:pending ";
+      } else if (req.query.report === "Completed") {
+        filterString += "status:completed ";
+      } else if (req.query.report === "Due Soon") {
+        filterString += "status:pending due.before:eow ";
+      }
+      // All Tasks report doesn't need any specific filter
+
+      // If a raw filter was provided directly
+      if (req.query.filter && typeof req.query.filter === 'string') {
+        filterString += req.query.filter;
+      }
+
+      console.log("Filter string:", filterString);
+      const tasks = await taskwarrior.getTasks(filterString.trim());
       res.json(tasks);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

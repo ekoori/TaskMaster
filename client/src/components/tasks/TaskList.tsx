@@ -13,27 +13,37 @@ export default function TaskList() {
   const [sortBy, setSortBy] = useState("priority");
   const [queryFilter, setQueryFilter] = useState<string>("");
 
-  // Build query filter string based on currentFilter
+  // Build query parameters object based on currentFilter
   useEffect(() => {
-    let filterParts: string[] = [];
+    // Create an object to hold the query parameters for the API request
+    const params: Record<string, string> = {};
     
+    // Add specific filter parameters based on the current filter
     if (currentFilter.status) {
-      filterParts.push(`status:${currentFilter.status}`);
+      params.status = currentFilter.status;
     }
     
     if (currentFilter.project) {
-      filterParts.push(`project:${currentFilter.project}`);
+      params.project = currentFilter.project;
     }
     
     if (currentFilter.tag) {
-      filterParts.push(`+${currentFilter.tag}`);
+      params.tag = currentFilter.tag;
     }
     
     if (currentFilter.priority) {
-      filterParts.push(`priority:${currentFilter.priority}`);
+      params.priority = currentFilter.priority;
     }
     
-    setQueryFilter(filterParts.join(" "));
+    if (currentFilter.report) {
+      params.report = currentFilter.report;
+    }
+    
+    // Convert the params object to a query string
+    const queryString = new URLSearchParams(params).toString();
+    setQueryFilter(queryString);
+    
+    console.log("Query params:", queryString);
   }, [currentFilter]);
 
   // Fetch tasks with more frequent updates and query invalidation

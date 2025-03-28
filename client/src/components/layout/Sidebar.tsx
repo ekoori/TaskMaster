@@ -49,22 +49,21 @@ export default function Sidebar() {
   });
   
   const handleReportClick = (filter: string, reportName: string) => {
-    // Don't parse filter as JSON, handle it as a string
     try {
       // Clear any existing filters first
       const newFilter: TaskFilter = { report: reportName };
       
-      // Parse status filter if present
-      if (filter.includes('status:pending')) {
-        newFilter.status = 'pending';
-      } else if (filter.includes('status:completed')) {
-        newFilter.status = 'completed';
-      }
+      console.log(`Applying report filter: ${reportName}`);
       
       setCurrentFilter(newFilter);
       
-      // Invalidate tasks query to force refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      // Invalidate tasks query to force refresh with all queryKeys that start with /api/tasks
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const queryKey = query.queryKey[0];
+          return typeof queryKey === 'string' && queryKey.startsWith('/api/tasks');
+        }
+      });
     } catch (error) {
       console.error("Error setting report filter:", error);
     }
@@ -74,16 +73,30 @@ export default function Sidebar() {
     // Reset current filter and set only project
     setCurrentFilter({ project });
     
-    // Invalidate tasks query to force refresh
-    queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+    console.log(`Applying project filter: ${project}`);
+    
+    // Invalidate tasks query to force refresh with all queryKeys that start with /api/tasks
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey[0];
+        return typeof queryKey === 'string' && queryKey.startsWith('/api/tasks');
+      }
+    });
   };
   
   const handleTagClick = (tag: string) => {
     // Reset current filter and set only tag
     setCurrentFilter({ tag });
     
-    // Invalidate tasks query to force refresh
-    queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+    console.log(`Applying tag filter: ${tag}`);
+    
+    // Invalidate tasks query to force refresh with all queryKeys that start with /api/tasks
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey[0];
+        return typeof queryKey === 'string' && queryKey.startsWith('/api/tasks');
+      }
+    });
   };
   
   // Map the lucide icons to report names
