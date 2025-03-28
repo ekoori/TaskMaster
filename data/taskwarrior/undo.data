@@ -108,3 +108,11 @@ time 1743163474
 old [description:"Create user documentation" entry:"1743145056" modified:"1743145056" project:"Website" status:"pending" tags:"documentation,important" tags_documentation:"x" tags_important:"x" uuid:"cb0e0eb3-319b-4605-b72c-a10a534303c6"]
 new [dep_d2782470-37d3-4aa0-a2fd-28538151fd55:"x" depends:"d2782470-37d3-4aa0-a2fd-28538151fd55" description:"Create user documentation" entry:"1743145056" modified:"1743163474" project:"Website" status:"pending" tags:"documentation,important" tags_documentation:"x" tags_important:"x" uuid:"cb0e0eb3-319b-4605-b72c-a10a534303c6"]
 ---
+time 1743164635
+old [dep_d2782470-37d3-4aa0-a2fd-28538151fd55:"x" depends:"d2782470-37d3-4aa0-a2fd-28538151fd55" description:"Create user documentation" entry:"1743145056" modified:"1743163474" project:"Website" status:"pending" tags:"documentation,important" tags_documentation:"x" tags_important:"x" uuid:"cb0e0eb3-319b-4605-b72c-a10a534303c6"]
+new [dep_ce5b5648-96bb-4108-afcf-9e68dbf005da:"x" dep_d2782470-37d3-4aa0-a2fd-28538151fd55:"x" depends:"ce5b5648-96bb-4108-afcf-9e68dbf005da,d2782470-37d3-4aa0-a2fd-28538151fd55" description:"Create user documentation" entry:"1743145056" modified:"1743164635" project:"Website" status:"pending" tags:"documentation,important" tags_documentation:"x" tags_important:"x" uuid:"cb0e0eb3-319b-4605-b72c-a10a534303c6"]
+---
+time 1743164919
+old [annotation_1743161667:"it is .50" annotation_1743161695:"it is .50" description:"Buy milk" entry:"1743114827" modified:"1743161695" status:"pending" uuid:"ce5b5648-96bb-4108-afcf-9e68dbf005da"]
+new [annotation_1743161667:"it is .50" annotation_1743161695:"it is .50" description:"Buy milk" end:"1743164919" entry:"1743114827" modified:"1743164919" status:"completed" uuid:"ce5b5648-96bb-4108-afcf-9e68dbf005da"]
+---

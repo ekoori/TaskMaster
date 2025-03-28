@@ -167,20 +167,35 @@ export default function TaskItem({ task }: TaskItemProps) {
   return (
     <div 
       className={cn(
-        "bg-white rounded-lg shadow-md p-4 border-l-4",
+        "bg-white rounded-lg shadow-md p-4 border-l-4 cursor-pointer relative",
         getBorderColor(),
         task.status === "completed" && "opacity-70"
       )}
+      onClick={(e) => {
+        // Only open edit if the click wasn't on a specific interactive element
+        const target = e.target as HTMLElement;
+        const isClickable = 
+          target.closest('.checkbox-area') || 
+          target.closest('.collapsible-header') ||
+          target.closest('.trash-button') || 
+          target.closest('.dependency-item');
+        
+        if (!isClickable) {
+          handleEdit();
+        }
+      }}
     >
       <div className="flex justify-between items-start">
         <div className="flex-grow">
           <div className="flex items-center mb-2">
-            <Checkbox 
-              className="w-5 h-5 mr-3 cursor-pointer"
-              checked={task.status === "completed"}
-              onCheckedChange={() => toggleCompleteMutation.mutate(task.id)}
-              disabled={isCompleting}
-            />
+            <div className="checkbox-area" onClick={(e) => e.stopPropagation()}>
+              <Checkbox 
+                className="w-5 h-5 mr-3 cursor-pointer"
+                checked={task.status === "completed"}
+                onCheckedChange={() => toggleCompleteMutation.mutate(task.id)}
+                disabled={isCompleting}
+              />
+            </div>
             <h3 
               className={cn(
                 "text-lg font-medium",
@@ -263,8 +278,11 @@ export default function TaskItem({ task }: TaskItemProps) {
             {annotationsList.length > 0 && (
               <div className="mb-2 border rounded-md overflow-hidden">
                 <div 
-                  className="border-b px-3 py-2 flex justify-between items-center bg-gray-50 cursor-pointer"
-                  onClick={() => setAnnotationsOpen(!annotationsOpen)}
+                  className="collapsible-header border-b px-3 py-2 flex justify-between items-center bg-gray-50 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAnnotationsOpen(!annotationsOpen);
+                  }}
                 >
                   <div className="flex items-center text-sm font-medium text-gray-700">
                     {annotationsOpen ? 
@@ -299,8 +317,11 @@ export default function TaskItem({ task }: TaskItemProps) {
             {dependentTasks.length > 0 && (
               <div className="mb-2 border rounded-md overflow-hidden">
                 <div 
-                  className="border-b px-3 py-2 flex justify-between items-center bg-gray-50 cursor-pointer"
-                  onClick={() => setDependenciesOpen(!dependenciesOpen)}
+                  className="collapsible-header border-b px-3 py-2 flex justify-between items-center bg-gray-50 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDependenciesOpen(!dependenciesOpen);
+                  }}
                 >
                   <div className="flex items-center text-sm font-medium text-gray-700">
                     {dependenciesOpen ? 
@@ -317,17 +338,43 @@ export default function TaskItem({ task }: TaskItemProps) {
                       {dependentTasks.map((depTask) => (
                         <div 
                           key={depTask.id}
-                          className="embedded-task p-2 border rounded shadow-sm"
+                          className="dependency-item embedded-task p-2 border rounded shadow-sm cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.dispatchEvent(new CustomEvent('editTask', { detail: depTask }));
+                          }}
                         >
                           <div className="flex items-start">
                             <div className="flex items-center">
-                              <div className={cn(
-                                "w-2 h-2 rounded-full mr-2",
-                                depTask.status === "completed" ? "bg-green-500" : 
-                                depTask.priority === "H" ? "bg-red-500" : 
-                                depTask.priority === "M" ? "bg-amber-500" : 
-                                depTask.priority === "L" ? "bg-blue-500" : "bg-gray-300"
-                              )}></div>
+                              <div 
+                                className="checkbox-area mr-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Toggle dependent task status
+                                  const newStatus = depTask.status === "completed" ? "pending" : "completed";
+                                  apiRequest("PATCH", `/api/tasks/${depTask.id}`, { status: newStatus })
+                                    .then(() => {
+                                      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+                                      toast({
+                                        title: depTask.status === "completed" ? "Task marked as pending" : "Task completed",
+                                        description: depTask.description,
+                                      });
+                                    })
+                                    .catch(error => {
+                                      toast({
+                                        title: "Failed to update task",
+                                        description: error.message,
+                                        variant: "destructive",
+                                      });
+                                    });
+                                }}
+                              >
+                                <Checkbox 
+                                  className="w-4 h-4 cursor-pointer"
+                                  checked={depTask.status === "completed"}
+                                  disabled={false}
+                                />
+                              </div>
                               <span className="text-xs bg-gray-200 px-1 rounded mr-2 text-gray-700">{depTask.id.substring(0, 8)}</span>
                             </div>
                             <span className={cn(
@@ -380,14 +427,11 @@ export default function TaskItem({ task }: TaskItemProps) {
         </div>
         <div className="flex">
           <button 
-            className="text-gray-500 hover:text-primary focus:outline-none"
-            onClick={handleEdit}
-          >
-            <Edit className="h-5 w-5" />
-          </button>
-          <button 
-            className="ml-2 text-gray-500 hover:text-red-500 focus:outline-none"
-            onClick={handleDelete}
+            className="trash-button ml-2 text-gray-500 hover:text-red-500 focus:outline-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete();
+            }}
           >
             <Trash2 className="h-5 w-5" />
           </button>
