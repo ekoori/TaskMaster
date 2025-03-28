@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,13 @@ export default function TaskItem({ task }: TaskItemProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isCompleting, setIsCompleting] = useState(false);
+  
+  // States for collapsibles
+  const [annotationsOpen, setAnnotationsOpen] = useState(false);
+  const [dependenciesOpen, setDependenciesOpen] = useState(false);
+  
+  // Get all tasks from query client for displaying dependencies
+  const allTasks = queryClient.getQueryData<TaskWithMetadata[]>(['/api/tasks']) || [];
   
   // Mutation to toggle task complete
   const toggleCompleteMutation = useMutation({
@@ -117,6 +124,21 @@ export default function TaskItem({ task }: TaskItemProps) {
     return priorityColors[priority || ""];
   };
   
+  // Find dependent tasks
+  const getDependentTasks = () => {
+    if (!task.depends || task.depends.length === 0) return [];
+    return task.depends
+      .map(depId => allTasks.find(t => t.id === depId))
+      .filter(Boolean) as TaskWithMetadata[];
+  };
+  
+  // Get dependent tasks
+  const dependentTasks = getDependentTasks();
+  
+  // Format annotations into array
+  const annotationsList = task.annotations ? 
+    task.annotations.split('\n').filter(Boolean) : [];
+  
   return (
     <div 
       className={cn(
@@ -144,23 +166,7 @@ export default function TaskItem({ task }: TaskItemProps) {
             </h3>
           </div>
           <div className="ml-8">
-            {/* Display annotations as comments */}
-            {task.annotations && (
-              <div className="mb-3">
-                {task.annotations.split('\n').filter(Boolean).map((comment, idx) => (
-                  <div 
-                    key={idx} 
-                    className={cn(
-                      "text-sm text-gray-700 mb-1 p-1.5 border-l-2 border-gray-300 pl-2",
-                      task.status === "completed" && "text-gray-500"
-                    )}
-                  >
-                    {comment}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {/* Priority Badge */}
               {task.priority && (
                 <span className={cn(
@@ -219,19 +225,6 @@ export default function TaskItem({ task }: TaskItemProps) {
                 </span>
               ))}
               
-              {/* Dependencies Badge */}
-              {task.depends && task.depends.length > 0 && (
-                <span className={cn(
-                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                  task.status === "completed" 
-                    ? "bg-gray-100 text-gray-800" 
-                    : "bg-blue-100 text-blue-800"
-                )}>
-                  <span className="mr-1 text-xs">🔗</span>
-                  {task.depends.length} {task.depends.length === 1 ? "Dependency" : "Dependencies"}
-                </span>
-              )}
-              
               {/* Completed Badge */}
               {task.status === "completed" && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -240,6 +233,84 @@ export default function TaskItem({ task }: TaskItemProps) {
                 </span>
               )}
             </div>
+            
+            {/* Collapsible Annotations Section */}
+            {annotationsList.length > 0 && (
+              <div className="mb-2 border rounded-md overflow-hidden">
+                <div 
+                  className="border-b px-3 py-2 flex justify-between items-center bg-gray-50 cursor-pointer"
+                  onClick={() => setAnnotationsOpen(!annotationsOpen)}
+                >
+                  <div className="flex items-center text-sm font-medium text-gray-700">
+                    {annotationsOpen ? 
+                      <ChevronDown className="h-4 w-4 mr-1" /> : 
+                      <ChevronRight className="h-4 w-4 mr-1" />
+                    }
+                    Comments ({annotationsList.length})
+                  </div>
+                </div>
+                
+                {annotationsOpen && (
+                  <div className="p-2">
+                    <div className="space-y-2">
+                      {annotationsList.map((comment, idx) => (
+                        <div 
+                          key={idx} 
+                          className={cn(
+                            "text-sm text-gray-700 p-1.5 border-l-2 border-gray-300 pl-2 bg-gray-50 rounded",
+                            task.status === "completed" && "text-gray-500"
+                          )}
+                        >
+                          {comment}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Collapsible Dependencies Section */}
+            {dependentTasks.length > 0 && (
+              <div className="mb-2 border rounded-md overflow-hidden">
+                <div 
+                  className="border-b px-3 py-2 flex justify-between items-center bg-gray-50 cursor-pointer"
+                  onClick={() => setDependenciesOpen(!dependenciesOpen)}
+                >
+                  <div className="flex items-center text-sm font-medium text-gray-700">
+                    {dependenciesOpen ? 
+                      <ChevronDown className="h-4 w-4 mr-1" /> : 
+                      <ChevronRight className="h-4 w-4 mr-1" />
+                    }
+                    Dependencies ({dependentTasks.length})
+                  </div>
+                </div>
+                
+                {dependenciesOpen && (
+                  <div className="p-2">
+                    <div className="space-y-2">
+                      {dependentTasks.map((depTask) => (
+                        <div 
+                          key={depTask.id} 
+                          className="text-sm flex items-center p-1.5 bg-gray-50 rounded border border-gray-200"
+                        >
+                          <span className="text-xs bg-gray-200 px-1 rounded mr-2 text-gray-700">{depTask.id.substring(0, 8)}</span>
+                          <span className={cn(
+                            "truncate flex-grow",
+                            depTask.status === "completed" && "line-through text-gray-500"
+                          )}>
+                            {depTask.description}
+                          </span>
+                          {depTask.status === "completed" && (
+                            <span className="ml-1 text-green-600 text-xs">✓</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex">
